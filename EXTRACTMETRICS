@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# Copyright (c) 2020, Intel Corporation
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#  * Redistributions of source code must retain the above copyright notice,
+#    this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#  * Neither the name of Intel Corporation nor the names of its contributors
+#    may be used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+# EXTRACTMETRICS PublicTMASpreadsheet.CSV
+
+set -e
+
+E="--extrajson cstate.json"
+
+./extract-tmam-metrics.py --extramodel CLX CLX --memory $E $1 > clx-metrics.json
+./extract-tmam-metrics.py --extramodel SKX SKX $E $1 > skx-metrics.json
+./extract-tmam-metrics.py --extramodel BDX BDX $E $1 > bdx-metrics.json
+./extract-tmam-metrics.py --extramodel HSX HSX $E $1 > hsx-metrics.json
+./extract-tmam-metrics.py --extramodel IVT IVT $E $1 > ivt-metrics.json
+./extract-tmam-metrics.py --extramodel JKT JKT/SNB-EP $E $1 > jkt-metrics.json
+
+./extract-tmam-metrics.py --extramodel SKL SKL/KBL $E $1 > skl-metrics.json
+./extract-tmam-metrics.py --extramodel BDW BDW/BDW-DE $E $1 > bdw-metrics.json
+./extract-tmam-metrics.py --extramodel HSW HSW $E $1 > hsw-metrics.json
+./extract-tmam-metrics.py --extramodel IVB IVB $E $1 > ivb-metrics.json
+./extract-tmam-metrics.py --extramodel SNB SNB $E $1 > snb-metrics.json

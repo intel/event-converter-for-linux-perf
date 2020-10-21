@@ -1,0 +1,44 @@
+[
+    {
+        "MetricExpr": "(cstate_core@c3\\-residency@ / msr@tsc@) * 100",
+        "MetricGroup": "Power",
+        "BriefDescription": "C3 residency percent per core",
+        "MetricName": "C3_Core_Residency"
+    },
+    {
+        "MetricExpr": "(cstate_core@c6\\-residency@ / msr@tsc@) * 100",
+        "MetricGroup": "Power",
+        "BriefDescription": "C6 residency percent per core",
+        "MetricName": "C6_Core_Residency"
+    },
+    {
+        "MetricExpr": "(cstate_core@c7\\-residency@ / msr@tsc@) * 100",
+        "MetricGroup": "Power",
+        "BriefDescription": "C7 residency percent per core",
+        "MetricName": "C7_Core_Residency"
+    },
+    {
+        "MetricExpr": "(cstate_pkg@c2\\-residency@ / msr@tsc@) * 100",
+        "MetricGroup": "Power",
+        "BriefDescription": "C2 residency percent per package",
+        "MetricName": "C2_Pkg_Residency"
+    },
+    {
+        "MetricExpr": "(cstate_pkg@c3\\-residency@ / msr@tsc@) * 100",
+        "MetricGroup": "Power",
+        "BriefDescription": "C3 residency percent per package",
+        "MetricName": "C3_Pkg_Residency"
+    },
+    {
+        "MetricExpr": "(cstate_pkg@c6\\-residency@ / msr@tsc@) * 100",
+        "MetricGroup": "Power",
+        "BriefDescription": "C6 residency percent per package",
+        "MetricName": "C6_Pkg_Residency"
+    },
+    {
+        "MetricExpr": "(cstate_pkg@c7\\-residency@ / msr@tsc@) * 100",
+        "MetricGroup": "Power",
+        "BriefDescription": "C7 residency percent per package",
+        "MetricName": "C7_Pkg_Residency"
+    }
+]
