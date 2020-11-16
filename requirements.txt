@@ -1,5 +1,2 @@
-Requirements for event-converter-for-linux-perf
-
-Some scripts use pandas, please install the python libraries:
-pandas and numpy
-
+pandas
+numpy
