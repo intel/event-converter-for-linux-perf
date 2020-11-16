@@ -29,6 +29,7 @@
 # convert a CSV or JSON PMU event table to oprofile format
 # generic json version
 # event-oprofile cpu.csv|cpu.json cpu
+from __future__ import print_function
 import csv
 import sys
 import argparse
@@ -115,8 +116,8 @@ if args.file.endswith(".json"):
 else:
     r = dictopen(args.file)
 for row in r:
-    #print row
-    print row['EventName']
+    #print(row)
+    print(row['EventName'])
     umask = int(row['UMask'].split(",")[0], 16)
     code = int(row['EventCode'].split(",")[0], 16)
     name = row['EventName'].lower().rstrip()
@@ -128,14 +129,14 @@ for row in r:
     minimum = row['SampleAfterValue']
 
     if counters == "":
-        print "%s skipped due to empty counter" % (name,)
+        print("%s skipped due to empty counter" % (name,))
         continue
     if (counters == "0,1,2,3" and ('CounterHTOff' not in row or row['CounterHTOff'] == '0,1,2,3,4,5,6,7')) or counters.startswith("Fixed "):
         counters = "cpuid"
 
     # XXX add support to oprofile with perf
     if row['MSRIndex'] != "0":
-        print "%s skipped due to extra msr" % (name,)
+        print("%s skipped due to extra msr" % (name,))
         continue
     if minimum:
         minimum = int(row['SampleAfterValue'])
@@ -145,7 +146,7 @@ for row in r:
     try:
         (name_base, name_unit) = name.split('.', 1)
     except:
-        print name, "cannot be unpacked"
+        print(name, "cannot be unpacked")
         continue
 
     if name in fixed_counters:
@@ -168,7 +169,7 @@ for row in r:
         e.unitmasks.append(ue)
 
     #if name_unit.endswith("_ps"):
-    #   print "setting pebs to",ue.name
+    #   print("setting pebs to",ue.name)
     #   ue.pebs = 1
     #   continue
 
@@ -185,8 +186,8 @@ for row in r:
 
     if e.counters:
         if e.counters != counters:
-            print "%s counters do not match %s with %s for %s" % (
-                name, counters, e.counters, e.unitmasks[0].name)
+            print("%s counters do not match %s with %s for %s" % (
+                name, counters, e.counters, e.unitmasks[0].name))
             if len(counters) < len(e.counters) and counters != "cpuid":
                 e.counters = counters
     else:
@@ -212,18 +213,18 @@ for row in r:
 #        prev = u
 #    for u in e.unitmasks[:]:
 #        if u.skip:
-#            print "Redundant %s for PEBS removed" % (u.name,)
+#            print("Redundant %s for PEBS removed" % (u.name,))
 #            e.unitmasks.remove(u)
 
 fe = open(args.cpu + '-events', 'w')
-print >>fe, """#
+print("""#
 # Intel "%s" microarchitecture core events.
 #
 # See http://ark.intel.com/ for help in identifying %s based CPUs
 #
 # Note the minimum counts are not discovered experimentally and could be likely
 # lowered in many cases without ill effect.
-#""" % (cpu, cpu)
+#""" % (cpu, cpu), file=fe)
 
 singleumasks = set()
 for name in sorted(events.keys(), cmp=lambda a, b: events[a].code - events[b].code):
@@ -231,7 +232,7 @@ for name in sorted(events.keys(), cmp=lambda a, b: events[a].code - events[b].co
     um = e.name
     l = len(e.unitmasks)
     if l == 0:
-        print "Event %s got eliminated" % (e.name)
+        print("Event %s got eliminated" % (e.name))
         continue
     elif l == 1:
         e.name += "_" + e.unitmasks[0].name
@@ -245,8 +246,9 @@ for name in sorted(events.keys(), cmp=lambda a, b: events[a].code - events[b].co
     desc = ""
     counters = e.counters
 
-    print >>fe, "event:0x%02x counters:%s um:%s minimum:%d name:%s :%s%s" % (
-        e.code, counters, um, e.minimum, e.name, " " if len(desc) > 0 else "", desc)
+    print("event:0x%02x counters:%s um:%s minimum:%d name:%s :%s%s" % (
+        e.code, counters, um, e.minimum, e.name, " " if len(desc) > 0 else "", desc),
+          file=fe)
 
 # pick the first umask
 def default_umask(ulist):
@@ -257,24 +259,24 @@ def default_umask(ulist):
         return "%#2x" % (ulist[0].umask)
 
 fu = open(sys.argv[2] + '-unit_masks', 'w')
-print >>fu, """#
+print("""#
 # Unit masks for the Intel "%s" micro architecture
 #
 # See http://ark.intel.com/ for help in identifying %s based CPUs
-#""" % (cpu, cpu, )
+#""" % (cpu, cpu, ), file=fu)
 
 for u in sorted(singleumasks):
     ev = u[0]
     u = u[1]
     umask = u.umask
-    print >>fu, "name:%s type:mandatory default:%#02x" % (
-        ev, umask)
-    print >>fu, "\t%#02x %s%s %s" % (umask, u.genextra(), u.name, u.desc)
+    print("name:%s type:mandatory default:%#02x" % (
+        ev, umask), file=fu)
+    print("\t%#02x %s%s %s" % (umask, u.genextra(), u.name, u.desc), file=fu)
 for name in sorted(events.keys(), cmp=lambda a, b: events[a].code - events[b].code):
     e = events[name]
     if not e.unitmasks:
         continue
-    print >>fu, "name:%s type:exclusive default:%s" % (
-        e.name, default_umask(e.unitmasks))
+    print("name:%s type:exclusive default:%s" % (
+        e.name, default_umask(e.unitmasks)), file=fu)
     for u in e.unitmasks:
-        print >>fu, "\t%#02x %s%s %s" % (u.umask, u.genextra(), u.name, u.desc)
+        print("\t%#02x %s%s %s" % (u.umask, u.genextra(), u.name, u.desc), file=fu)
