@@ -14,9 +14,9 @@ csv-field.py
   - print csv fields from csv
   - csv-field.py field1 ... fieldN < csv
 
-event-oprofile
+event-oprofile.py
   - convert a CSV or JSON PMU event table to oprofile format generic json version
-  - event-oprofile cpu.csv|cpu.json cpu
+  - event-oprofile.py cpu.csv|cpu.json cpu
 
 evj2csv
   - convert json event format to csv
