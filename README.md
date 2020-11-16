@@ -18,7 +18,7 @@ event-oprofile.py
   - convert a CSV or JSON PMU event table to oprofile format generic json version
   - event-oprofile.py cpu.csv|cpu.json cpu
 
-evj2csv
+evj2csv.py
   - convert json event format to csv
 
 EXTRACTMETRICS
