@@ -28,6 +28,7 @@
 
 # print csv fields from csv
 # csv-field.py field1 ... fieldN < csv
+from __future__ import print_function
 import csv
 import sys
 import fnmatch
@@ -45,9 +46,9 @@ for j in c:
             if "*" in f:
                 for k in j.keys():
                     if fnmatch.fnmatch(k, f):
-                        print j[k],
+                        print(j[k])
             else:
-                print j[f],
+                print(j[f])
         except KeyError:
-            print "?",
+            print("?")
     print
