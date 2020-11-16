@@ -27,7 +27,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # print csv fields from csv
-# csv-field field1 ... fieldN < csv
+# csv-field.py field1 ... fieldN < csv
 import csv
 import sys
 import fnmatch

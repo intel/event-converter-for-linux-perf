@@ -10,9 +10,9 @@ This project uses "BSD clause 3" license (see COPYING).
 
 Scripts usage:
 --------------
-csv-field
+csv-field.py
   - print csv fields from csv
-  - csv-field field1 ... fieldN < csv
+  - csv-field.py field1 ... fieldN < csv
 
 event-oprofile
   - convert a CSV or JSON PMU event table to oprofile format generic json version
