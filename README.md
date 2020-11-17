@@ -33,7 +33,7 @@ gen-metrics
   - generate json metric files in perf tree from TMAM
   - gen-metrics TMEM-file linux-tree
 
-json2csv
+json2csv.py
   - convert json to equivalent CSV (with tabs)
 
 json-remove-events
