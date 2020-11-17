@@ -165,7 +165,7 @@ def fixup(form, ebs_mode):
 
     form = re.sub(r":sup", ":u", form)
     form = re.sub(r"\bTSC\b", "msr@tsc@", form)
-    form = re.sub(r"\bCLKS\b", "cycles", form)
+    form = re.sub(r"\bCLKS\b", "CPU_CLK_UNHALTED.THREAD", form)
     form = form.replace("_PS", "")
     form = form.replace("\b1==1\b", "1")
     form = form.replace("Memory", "1" if args.memory else "0")
