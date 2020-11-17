@@ -27,9 +27,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # remove selected events from json file
+from __future__ import print_function
 import json
 import argparse
 import fnmatch
+import sys
 
 ap = argparse.ArgumentParser()
 ap.add_argument('jsonfile')
@@ -45,4 +47,4 @@ for e in jf:
         if fnmatch.fnmatch(e["Name"], r):
             continue
     out.append(e)
-print json.dumps(out, indent=4, separators=(',', ': '))
+print(json.dumps(out, indent=4, separators=(',', ': ')))
