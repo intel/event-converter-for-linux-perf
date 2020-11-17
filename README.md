@@ -36,7 +36,7 @@ gen-metrics
 json2csv.py
   - convert json to equivalent CSV (with tabs)
 
-json-remove-events
+json-remove-events.py
   - remove selected events from json file
 
 json-to-perf-json.py
