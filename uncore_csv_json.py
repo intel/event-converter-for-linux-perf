@@ -27,7 +27,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # generate split uncore json from csv spreadsheet input
-# uncore_csv_json csv orig-pme-json targetdir
+# uncore_csv_json.py csv orig-pme-json targetdir
 
 import json
 import sys

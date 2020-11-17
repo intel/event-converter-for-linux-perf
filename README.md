@@ -89,9 +89,9 @@ revev
 rev-event
   - print all events from a json event file in perf format (no special)
 
-uncore_csv_json
+uncore_csv_json.py
   - generate split uncore json from csv spreadsheet input
-  - uncore_csv_json csv orig-pme-json targetdir
+  - uncore_csv_json.py csv orig-pme-json targetdir
   - see example below
 
 Examples:
@@ -111,7 +111,7 @@ skylakex_core_v1.24.json is downloaded from https://download.01.org/perfmon/.
 
 2. Generate uncore event json
 
-$ python uncore_csv_json --all perf-uncore-events-clx.csv cascadelakex_uncore_v1.11.json ./clx-output cascadelakex_uncore_v1.11_experimental.json
+$ python uncore_csv_json.py --all perf-uncore-events-clx.csv cascadelakex_uncore_v1.11.json ./clx-output cascadelakex_uncore_v1.11_experimental.json
 ......
 generating Uncore-Memory
 generating Uncore-Other
