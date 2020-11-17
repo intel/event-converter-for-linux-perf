@@ -28,6 +28,7 @@
 
 # extract metrics for cpu from TMAM spreadsheet and generate JSON metrics files
 # extract-tmam-metrics.py CPU tmam-csv-file.csv > cpu-metrics.json
+from __future__ import print_function
 import csv
 import argparse
 import re
@@ -111,7 +112,7 @@ l1nodes = []
 for l in csvf:
     if l[0] == 'Key':
         f = {name: ind for name, ind in zip(l, range(len(l)))}
-        #print f
+        #print(f)
     def field(x):
         return l[f[x]]
 
@@ -141,7 +142,7 @@ for l in csvf:
         if form == "#NA":
             continue
         aux[field("Level1")] = form
-        print >>sys.stderr, "Adding aux", field("Level1"), form
+        print("Adding aux", field("Level1"), form, file=sys.stderr)
 
 def bracket(expr):
     if "/" in expr or "*" in expr or "+" in expr or "-" in expr:
@@ -151,7 +152,7 @@ def bracket(expr):
             return "(" + expr + ")"
     return expr
 
-class SeenEBS:
+class SeenEBS(Exception):
     pass
 
 def fixup(form, ebs_mode):
@@ -198,13 +199,13 @@ def fixup(form, ebs_mode):
         if m:
             form = m.group(1)
     if "if" in form:
-       # print >>sys.stderr, "unhandled if", form
+        # print("unhandled if", form, file=sys.stderr)
         index = form.find(' if ')
         form = form[0:index]
 
     return form
 
-class BadRef:
+class BadRef(Exception):
     def __init__(self, v):
         self.name = v
 
@@ -235,7 +236,7 @@ def resolve_all(form, ebs_mode=-1):
             child = aux[v]
         badevent(child)
         child = fixup(child, ebs_mode)
-        #print >>sys.stderr, m.group(0), "=>", child
+        #print(m.group(0), "=>", child, file=sys.stderr)
         return bracket(child)
 
     def resolve_info(v):
@@ -252,7 +253,7 @@ def resolve_all(form, ebs_mode=-1):
             form = re.sub(r"[A-Z_a-z0-9.]+", lambda m: resolve_info(m.group(0)), form)
         badevent(form)
     except BadRef as e:
-        print >>sys.stderr, "Skipping " + i[0] + " due to " + e.name
+        print("Skipping " + i[0] + " due to " + e.name, file=sys.stderr)
         return ""
 
     form = fixup(form, ebs_mode)
@@ -277,17 +278,17 @@ if args.extrajson:
 
 for i in info:
     if i[0] in ignore:
-        print >>sys.stderr, "Skipping", i[0]
+        print("Skipping", i[0], file=sys.stderr)
         continue
 
     form = i[1]
     if form is None:
-        print >>sys.stderr, "no formula for", i[0]
+        print("no formula for", i[0], file=sys.stderr)
         continue
     if form == "#NA" or form == "N/A":
         continue
     if args.verbose:
-        print >>sys.stderr, i[0], "orig form", form
+        print(i[0], "orig form", form, file=sys.stderr)
 
     if i[3] == "":
         if i[0] in groups:
@@ -301,7 +302,7 @@ for i in info:
             return
         if group.endswith(';'):
             group = group.rstrip(';')
-        print >>sys.stderr, name, form
+        print(name, form, file=sys.stderr)
 
         j = {
             "MetricName": name,
@@ -345,4 +346,4 @@ for i in info:
 
 jo = jo + je
 
-print json.dumps(jo, indent=4, separators=(',', ': '))
+print(json.dumps(jo, indent=4, separators=(',', ': ')))
