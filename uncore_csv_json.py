@@ -27,8 +27,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # generate split uncore json from csv spreadsheet input
-# uncore_csv_json csv orig-pme-json targetdir
-
+# uncore_csv_json.py csv orig-pme-json targetdir
+from __future__ import print_function
 import json
 import sys
 import csv
@@ -85,13 +85,13 @@ def update(j):
     if "Counter" in j and j["Counter"] == "FIXED":
         j["EventCode"] = "0xff"
         j["UMask"] = "0x00"
-    for k in j.keys():
+    for k in list(j.keys()):
         if j[k] in ("0x0", "0x00", "0X00", "null", "", "0", None, "tbd", "TBD", "na"):
             del j[k]
     if "BriefDescription" in j:
-        j["BriefDescription"] = j["BriefDescription"].encode("ascii", errors="ignore")
+        j["BriefDescription"] = str(j["BriefDescription"].encode("ascii", errors="ignore"))
     if "PublicDescription" in j:
-        j["PublicDescription"] = j["PublicDescription"].encode("ascii", errors="ignore")
+        j["PublicDescription"] = str(j["PublicDescription"].encode("ascii", errors="ignore"))
     return j
 
 jl = []
@@ -159,11 +159,11 @@ for l in c:
                 break
 
     if j is None:
-        print >>sys.stderr, "event", name, "not found"
+        print("event", name, "not found", file=sys.stderr)
         continue
 
     if is_deprecated(j):
-        print >>sys.stderr, "Could not find non deprecated version of", name
+        print("Could not find non deprecated version of", name, file=sys.stderr)
 
     j = update(j)
 
@@ -204,7 +204,7 @@ for l in c:
         else:
             j["ScaleUnit"] = scale + "Bytes"
     if j["EventName"] in added:
-        print >>sys.stderr, j["EventName"], "duplicated"
+        print(j["EventName"], "duplicated", file=sys.stderr)
         continue
     j = update(j)
     added.add(j["EventName"])
@@ -232,14 +232,14 @@ for j in jl:
     if "PublicDescription" in j:
         desc = j["PublicDescription"]
     if not desc:
-        print >>sys.stderr, j["EventName"], "has no description"
+        print(j["EventName"], "has no description", file=sys.stderr)
     if desc and len(desc) > 900:
-        print >>sys.stderr, j["EventName"], "has too long description for git (%d)" % len(desc)
+        print(j["EventName"], "has too long description for git (%d)" % len(desc), file=sys.stderr)
 
 def get_topic(j):
     return j["Topic"]
 
-#print jl
+#print(jl)
 remove_l = []
 for j in jl:
     if "Filter" in j.keys():
@@ -257,8 +257,8 @@ for topic, iter in itertools.groupby(sorted(jl, key=get_topic), key=get_topic):
     events = list(iter)
     for j in events:
         del j["Topic"]
-    print "generating", topic
+    print("generating", topic)
     of = open(args.targetdir + "/" + topic.lower() + ".json", "w")
     js = json.dumps(events, sort_keys=True, indent=4, separators=(',', ': '))
-    print >>of, js
+    print(js, file=of)
     of.close()

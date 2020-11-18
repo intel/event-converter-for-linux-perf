@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # Copyright (c) 2020, Intel Corporation
 #
@@ -28,6 +28,7 @@
 
 # generate split perf json files from a single perf json files
 # mapfile still needs to be updated separately
+from __future__ import print_function
 import os
 import itertools
 import json
@@ -76,7 +77,7 @@ for topic, nit in itertools.groupby(jf, lambda x: x["Topic"]):
         continue
     topic = topic.replace(" ", "-")
     fn = topic.lower() + ".json"
-    print fn
+    print(fn)
     ofile = open("%s/%s" % (args.outdir, fn), "w")
-    json.dump(j2, ofile, sort_keys=True, indent=4, separators=(',', ': '))
+    json.dump(list(j2), ofile, sort_keys=True, indent=4, separators=(',', ': '))
     ofile.close()

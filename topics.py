@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # Copyright (c) 2020, Intel Corporation
 #
@@ -28,7 +28,7 @@
 
 # generate topics for events
 # topics file.json > newfile.json
-
+from __future__ import print_function
 import json, sys, fnmatch, argparse
 
 if __name__ == '__main__':
@@ -146,9 +146,8 @@ if __name__ == '__main__':
         name = j["EventName"]
         topic = gen_topic(name)
         if args.show:
-            print name, topic
+            print(name, topic)
         j["Topic"] = topic
 
     if args.dump:
         json.dump(jf, sys.stdout, indent=4, separators=(',', ': '))
-

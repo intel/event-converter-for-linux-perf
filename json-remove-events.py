@@ -26,28 +26,25 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# print csv fields from csv
-# csv-field field1 ... fieldN < csv
-import csv
-import sys
+# remove selected events from json file
+from __future__ import print_function
+import json
+import argparse
 import fnmatch
+import sys
 
-def dictopen(f):
-    #dialect = csv.Sniffer().sniff(f.read(1024))
-    #f.seek(0)
-    #return csv.DictReader(f, dialect=dialect)
-    return csv.DictReader(f)
+ap = argparse.ArgumentParser()
+ap.add_argument('jsonfile')
+ap.add_argument('events', help="separated with , supports *")
+args = ap.parse_args()
 
-c = dictopen(sys.stdin)
-for j in c:
-    for f in sys.argv[1:]:
-        try:
-            if "*" in f:
-                for k in j.keys():
-                    if fnmatch.fnmatch(k, f):
-                        print j[k],
-            else:
-                print j[f],
-        except KeyError:
-            print "?",
-    print
+rem = args.events.split(",")
+
+jf = json.load(open(sys.argv[1]))
+out = []
+for e in jf:
+    for r in rem:
+        if fnmatch.fnmatch(e["Name"], r):
+            continue
+    out.append(e)
+print(json.dumps(out, indent=4, separators=(',', ': ')))

@@ -66,7 +66,7 @@ def fix_names(j):
         del j["Internal"]
     if j["EventName"].startswith("OFFCORE_RESPONSE") and j["BriefDescription"] == "tbd":
         j["BriefDescription"] = j["EventName"].replace("OFFCORE_RESPONSE.", "").replace(".", " & ")
-    for k in j.keys():
+    for k in list(j.keys()):
         if j[k] == 0 or j[k] == "0" or j[k] == "null" or j[k] == "tbd" or j[k] == "0x00" or j[k] == "":
             del j[k]
     if "UMask" in j:
@@ -102,12 +102,13 @@ def del_dup_events(jf):
 
 def del_special_events(jf):
     del_l = []
-    for i in range(len(jf)):
-        if jf[i]["EventName"].startswith("CORE_SNOOP") and "BriefDescription" not in jf[i]:
-            del_l.append(jf[i])
+    jf_l = list(jf)
+    for i in range(len(jf_l)):
+        if jf_l[i]["EventName"].startswith("CORE_SNOOP") and "BriefDescription" not in jf_l[i]:
+            del_l.append(jf_l[i])
     for j in del_l:
-        jf.remove(j)
-    return jf
+        jf_l.remove(j)
+    return jf_l
 
 def add_unit(jf, unit):
     for i in range(len(jf)):

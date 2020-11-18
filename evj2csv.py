@@ -27,6 +27,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # convert json event format to csv
+from __future__ import print_function
 import sys
 import json
 
@@ -61,14 +62,14 @@ for fn in sys.argv[1:]:
     jo = json.load(f)
     for j in jo:
         if not header:
-            print ",".join(headers)
+            print(",".join(headers))
             header = True
-        print >>sys.stderr, j['EventName']
+        print(j['EventName'], file=sys.stderr)
         if j['PublicDescription'].find("This is a non-precise version") >= 0:
             j['PublicDescription'] = 'null'
         if j['PublicDescription'].find("This is a precise version") < 0:
-            print oline(j)
+            print(oline(j))
         if j['PEBS'] == "1":
             j['EventName'] += "_PS"
             j['BriefDescription'] += " (Uses PEBS)"
-            print oline(j)
+            print(oline(j))

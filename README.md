@@ -10,15 +10,15 @@ This project uses "BSD clause 3" license (see COPYING).
 
 Scripts usage:
 --------------
-csv-field
+csv-field.py
   - print csv fields from csv
-  - csv-field field1 ... fieldN < csv
+  - csv-field.py field1 ... fieldN < csv
 
-event-oprofile
+event-oprofile.py
   - convert a CSV or JSON PMU event table to oprofile format generic json version
-  - event-oprofile cpu.csv|cpu.json cpu
+  - event-oprofile.py cpu.csv|cpu.json cpu
 
-evj2csv
+evj2csv.py
   - convert json event format to csv
 
 EXTRACTMETRICS
@@ -33,10 +33,10 @@ gen-metrics
   - generate json metric files in perf tree from TMAM
   - gen-metrics TMEM-file linux-tree
 
-json2csv
+json2csv.py
   - convert json to equivalent CSV (with tabs)
 
-json-remove-events
+json-remove-events.py
   - remove selected events from json file
 
 json-to-perf-json.py
@@ -89,9 +89,9 @@ revev
 rev-event
   - print all events from a json event file in perf format (no special)
 
-uncore_csv_json
+uncore_csv_json.py
   - generate split uncore json from csv spreadsheet input
-  - uncore_csv_json csv orig-pme-json targetdir
+  - uncore_csv_json.py csv orig-pme-json targetdir
   - see example below
 
 Examples:
@@ -111,7 +111,7 @@ skylakex_core_v1.24.json is downloaded from https://download.01.org/perfmon/.
 
 2. Generate uncore event json
 
-$ python uncore_csv_json --all perf-uncore-events-clx.csv cascadelakex_uncore_v1.11.json ./clx-output cascadelakex_uncore_v1.11_experimental.json
+$ python uncore_csv_json.py --all perf-uncore-events-clx.csv cascadelakex_uncore_v1.11.json ./clx-output cascadelakex_uncore_v1.11_experimental.json
 ......
 generating Uncore-Memory
 generating Uncore-Other
