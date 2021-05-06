@@ -79,5 +79,6 @@ for topic, nit in itertools.groupby(jf, lambda x: x["Topic"]):
     fn = topic.lower() + ".json"
     print(fn)
     ofile = open("%s/%s" % (args.outdir, fn), "w")
-    json.dump(list(j2), ofile, sort_keys=True, indent=4, separators=(',', ': '))
+    json.dump(sorted(list(j2), key=lambda x: x["EventName"]), ofile,
+              sort_keys=True, indent=4, separators=(',', ': '))
     ofile.close()
