@@ -89,7 +89,9 @@ ratio_column = {
     "SKL/KBL": ("SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
     "SKX": ("SKX", "SKL/KBL", "BDX", "BDW/BDW-DE", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
     "KBLR/CFL": ("KBLR/CFL", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
-    "CLX": ("CLX", "KBLR/CFL", "SKX", "SKL/KBL", "BDX", "BDW/BDW-DE", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "CLX": ("CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX", "BDW/BDW-DE", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "ICL": ("ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
+    "ICX": ("ICX", "ICL", "CNL", "CPX", "CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX", "BDW/BDW-DE", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
 }
 
 ap = argparse.ArgumentParser()
@@ -223,6 +225,8 @@ def resolve_all(form, ebs_mode=-1):
         if v == "#Base_Frequency":
             return v
         if v == "#SMT_on":
+            return v
+	if v == "#PERF_METRICS_MSR":
             return v
         if v == "#DurationTimeInSeconds":
             return "duration_time"
