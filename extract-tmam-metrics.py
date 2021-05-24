@@ -226,7 +226,7 @@ def resolve_all(form, ebs_mode=-1):
             return v
         if v == "#SMT_on":
             return v
-	if v == "#PERF_METRICS_MSR":
+        if v == "#PERF_METRICS_MSR":
             return v
         if v == "#DurationTimeInSeconds":
             return "duration_time"
