@@ -39,6 +39,9 @@ if __name__ == '__main__':
     args = ap.parse_args()
 
 namemap = (
+("*FPDIV", "Floating point"),
+("*FP_ASSIST", "Floating point"),
+("*SIMD", "Floating point"),
 ("ASSISTS.FP", "Floating point"),
 ("IDQ", "Frontend"),
 ("RTM", "Memory"),
