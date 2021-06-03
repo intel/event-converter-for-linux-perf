@@ -231,6 +231,8 @@ def resolve_all(form, ebs_mode=-1):
             return v
         if v == "#PERF_METRICS_MSR":
             return v
+        if v == "#Retired_Slots":
+            return "UOPS_RETIRED.RETIRE_SLOTS"
         if v == "#DurationTimeInSeconds":
             return "duration_time"
         if v == "#Model":
@@ -315,6 +317,10 @@ for i in info:
             return
         if group.endswith(';'):
             group = group.rstrip(';')
+	if group == "TopdownL1" or group == "TmaL1":
+	    return
+	if "PERF_METRICS" in form:
+	    return
         print(name, form, file=sys.stderr)
 
         j = {
@@ -336,9 +342,14 @@ for i in info:
         if j["MetricName"] == "Page_Walks_Utilization" or j["MetricName"] == "Backend_Bound":
             j["MetricConstraint"] = "NO_NMI_WATCHDOG"
 
+        expr = j["MetricExpr"]
+        expr = re.sub(r":USER", ":u", expr)
+        j["MetricExpr"] = expr
+
         if j["MetricName"] == "Kernel_Utilization":
             expr = j["MetricExpr"]
             expr = re.sub(r":u", ":k", expr)
+            expr = re.sub(r":SUP", ":k", expr)
             expr = re.sub(r"CPU_CLK_UNHALTED.REF_TSC", "CPU_CLK_UNHALTED.THREAD", expr)
             j["MetricExpr"] = expr
 
