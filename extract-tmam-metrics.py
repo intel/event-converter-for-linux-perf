@@ -99,6 +99,7 @@ ap.add_argument('cpu')
 ap.add_argument('csvfile', type=argparse.FileType('r'))
 ap.add_argument('--verbose', action='store_true')
 ap.add_argument('--memory', action='store_true')
+ap.add_argument('--expr-events')
 ap.add_argument('--extramodel')
 ap.add_argument('--extrajson')
 ap.add_argument('--unit')
@@ -111,6 +112,8 @@ aux = {}
 infoname = {}
 nodes = {}
 l1nodes = []
+resolved = []
+counts = 0
 for l in csvf:
     if l[0] == 'Key':
         f = {name: ind for name, ind in zip(l, range(len(l)))}
@@ -244,6 +247,8 @@ def resolve_all(form, ebs_mode=-1):
         return bracket(child)
 
     def resolve_info(v):
+	if v in resolved:
+	    return v
         if v in infoname:
             return bracket(fixup(infoname[v], ebs_mode))
         elif v in nodes:
@@ -273,6 +278,10 @@ def add_sentence(s, n):
     if not s.endswith("."):
         s += "."
     return s + " " + n
+
+def count_metric_events(v):
+    global counts
+    counts = counts + 1
 
 jo = []
 
@@ -336,6 +345,16 @@ for i in info:
         if args.unit:
             j["Unit"] = args.unit
 
+        tmp_expr = j["MetricExpr"]
+        global counts
+        counts = 0
+        re.sub(r"[a-zA-Z_.]+", lambda m: count_metric_events(m.group(0)), tmp_expr)
+
+        if args.expr_events:
+            if counts >= int(args.expr_events):
+                resolved.append(j["MetricName"])
+        else:
+            resolved.append(j["MetricName"])
         jo.append(j)
 
     try:
