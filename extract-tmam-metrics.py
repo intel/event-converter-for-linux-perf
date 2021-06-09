@@ -146,11 +146,11 @@ for l in csvf:
                 form = find_form()
                 nodes[field(j)] = form
                 if j == "Level1":
-                    info.append([field(j), form, field("Metric Description"), "TopdownL1"])
+                    info.append([field(j), form, field("Metric Description"), "TopdownL1", ""])
                     infoname[field(j)] = form
 
     if l[0].startswith("Info"):
-        info.append([field("Level1"), find_form(), field("Metric Description"), field("Metric Group")])
+        info.append([field("Level1"), find_form(), field("Metric Description"), field("Metric Group"), field("Locate-with")])
         infoname[field("Level1")] = find_form()
 
     if l[0].startswith("Aux"):
@@ -327,7 +327,7 @@ for i in info:
     if i[3] == "Topdown":
         i[3] = "TopDown"
 
-    def save_form(name, group, form, desc, extra=""):
+    def save_form(name, group, form, desc, locate, extra=""):
         if form == "":
             return
         if group.endswith(';'):
@@ -337,6 +337,9 @@ for i in info:
 	if "PERF_METRICS" in form:
 	    return
         print(name, form, file=sys.stderr)
+
+	if (locate != ""):
+	    desc = desc + ", Sample with: " + locate
 
         j = {
             "MetricName": name,
@@ -385,12 +388,12 @@ for i in info:
 
     try:
         form = resolve_all(form, -1)
-        save_form(i[0], i[3], form, i[2])
+        save_form(i[0], i[3], form, i[2], i[4])
     except SeenEBS:
         nf = resolve_all(form, 0)
-        save_form(i[0], i[3], nf, i[2])
+        save_form(i[0], i[3], nf, i[2], i[4])
         nf = resolve_all(form, 1)
-        save_form(smt_name(i[0]), smt_name(i[3]), nf, i[2],
+        save_form(smt_name(i[0]), smt_name(i[3]), nf, i[2], i[4],
                   "SMT version; use when SMT is enabled and measuring per logical CPU.")
 
 jo = jo + je
