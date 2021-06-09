@@ -44,6 +44,17 @@ groups = {
     "Turbo_Utilization": "Power",
 }
 
+icx_event_fixes = (
+    ("UNC_CHA_CLOCKTICKS:one_unit", r"cha_0@event=0x0@"),
+    ("UNC_M_CLOCKTICKS:one_unit", "imc_0@event=0x0@"),
+    ("UNC_CHA_TOR_OCCUPANCY.IA_MISS_DRD:c1", r"cha@event=0x36,umask=0xC817FE01,thresh=1@"),
+    ("UNC_M_CAS_COUNT.RD", "uncore_imc@cas_count_read@"),
+    ("UNC_M_CAS_COUNT.WR", "uncore_imc@cas_count_write@"),
+    ("UNC_M_PMM_RPQ_INSERTS", "imc@event=0xe3@"),
+    ("UNC_M_PMM_WPQ_INSERTS", "imc@event=0xe7@"),
+    ("UOPS_RETIRED.RETIRE_SLOTS", "UOPS_RETIRED.SLOTS"),
+)
+
 # XXX replace with ocperf
 event_fixes = (
     ("L1D_PEND_MISS.PENDING_CYCLES,amt1", "cpu@l1d_pend_miss.pending_cycles\\,any=1@"),
@@ -160,14 +171,18 @@ def bracket(expr):
 class SeenEBS(Exception):
     pass
 
-def fixup(form, ebs_mode):
-    for j, r in event_fixes:
-        def update_fix(x):
-            x = x.replace(",", r"\,")
-            x = x.replace("=", r"\=")
-            return x
+def update_fix(x):
+    x = x.replace(",", r"\,")
+    x = x.replace("=", r"\=")
+    return x
 
-        form = form.replace(j, update_fix(r))
+def fixup(form, ebs_mode):
+    if (args.cpu == "ICX"):
+        for j, r in icx_event_fixes:
+            form = form.replace(j, update_fix(r))
+    else:
+        for j, r in event_fixes:
+            form = form.replace(j, update_fix(r))
 
     form = re.sub(r":sup", ":u", form)
     form = re.sub(r"\bTSC\b", "msr@tsc@", form)
