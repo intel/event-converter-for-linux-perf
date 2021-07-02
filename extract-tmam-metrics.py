@@ -264,8 +264,8 @@ def resolve_all(form, ebs_mode=-1):
         return bracket(child)
 
     def resolve_info(v):
-	if v in resolved:
-	    return v
+        if v in resolved:
+            return v
         if v in infoname:
             return bracket(fixup(infoname[v], ebs_mode))
         elif v in nodes:
@@ -332,14 +332,14 @@ for i in info:
             return
         if group.endswith(';'):
             group = group.rstrip(';')
-	if group == "TopdownL1" or group == "TmaL1":
-	    return
-	if "PERF_METRICS" in form:
-	    return
+        if group == "TopdownL1" or group == "TmaL1":
+            return
+        if "PERF_METRICS" in form:
+            return
         print(name, form, file=sys.stderr)
 
-	if (locate != ""):
-	    desc = desc + ", Sample with: " + locate
+        if (locate != ""):
+            desc = desc + ", Sample with: " + locate
 
         j = {
             "MetricName": name,
