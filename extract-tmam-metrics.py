@@ -189,7 +189,7 @@ def fixup(form, ebs_mode):
     form = re.sub(r"\bCLKS\b", "CPU_CLK_UNHALTED.THREAD", form)
     form = form.replace("_PS", "")
     form = form.replace("\b1==1\b", "1")
-    form = form.replace("Memory", "1" if args.memory else "0")
+    form = form.replace("#Memory == 1", "1" if args.memory else "0")
     form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu@\1\\,cmask\\=\2@', form)
     form = form.replace("#(", "(") # XXX hack, shouldn't be needed
 
