@@ -88,10 +88,6 @@ def update(j):
     for k in list(j.keys()):
         if j[k] in ("0x0", "0x00", "0X00", "null", "", "0", None, "tbd", "TBD", "na"):
             del j[k]
-    if "BriefDescription" in j:
-        j["BriefDescription"] = str(j["BriefDescription"].encode("ascii", errors="ignore"))
-    if "PublicDescription" in j:
-        j["PublicDescription"] = str(j["PublicDescription"].encode("ascii", errors="ignore"))
     return j
 
 jl = []
