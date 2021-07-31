@@ -46,6 +46,8 @@ def cleanjf(jf):
             del jf[ind]
         if jf[ind]["EventName"].startswith("OFFCORE_RESPONSE_0"):
             jf[ind]["EventName"] = jf[ind]["EventName"].replace("OFFCORE_RESPONSE_0", "OFFCORE_RESPONSE")
+        for k, v in jf[ind].items():
+            jf[ind][k] = ''.join([c if ord(c) < 128 else '' for c in v])
 
 def fix_names(j):
     if "Description" in j and "BriefDescription" not in j:
