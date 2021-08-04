@@ -223,6 +223,10 @@ def fixup(form, ebs_mode):
         if m:
             form = m.group(2) if ebs_mode == 0 else m.group(1)
 
+        m = re.match(r'(.*) if #PMM_App_Direct else (.*)', form)
+        if m:
+            form = m.group(1)
+
         m = re.match(r'(.*) if 1 else (.*)', form)
         if m:
             form = m.group(1)
