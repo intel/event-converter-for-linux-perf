@@ -118,6 +118,11 @@ args = ap.parse_args()
 
 csvf = csv.reader(args.csvfile)
 
+def check_expr(expr):
+    if expr.count('(') != expr.count(')'):
+        raise Exception('Mismatched parentheses', expr)
+    return expr
+
 info = []
 aux = {}
 infoname = {}
@@ -134,10 +139,10 @@ for l in csvf:
 
     def find_form():
         if field(args.cpu):
-            return field(args.cpu)
+            return check_expr(field(args.cpu))
         for j in ratio_column[args.cpu]:
             if field(j):
-                return field(j)
+                return check_expr(field(j))
         return None
 
     if l[0].startswith("BE") or l[0].startswith("BAD") or l[0].startswith("RET") or l[0].startswith("FE"):
@@ -161,6 +166,7 @@ for l in csvf:
         print("Adding aux", field("Level1"), form, file=sys.stderr)
 
 def bracket(expr):
+    expr = check_expr(expr)
     if "/" in expr or "*" in expr or "+" in expr or "-" in expr:
         if expr.startswith('(') and expr.endswith(')'):
             return expr
@@ -177,6 +183,7 @@ def update_fix(x):
     return x
 
 def fixup(form, ebs_mode):
+    form = check_expr(form)
     if (args.cpu == "ICX"):
         for j, r in icx_event_fixes:
             form = form.replace(j, update_fix(r))
@@ -192,6 +199,7 @@ def fixup(form, ebs_mode):
     form = form.replace("#Memory == 1", "1" if args.memory else "0")
     form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu@\1\\,cmask\\=\2@', form)
     form = form.replace("#(", "(") # XXX hack, shouldn't be needed
+    form = check_expr(form)
 
     if "#EBS_Mode" in form:
         if ebs_mode == -1:
@@ -218,12 +226,13 @@ def fixup(form, ebs_mode):
         m = re.match(r'(.*) if 1 else (.*)', form)
         if m:
             form = m.group(1)
+
     if "if" in form:
         # print("unhandled if", form, file=sys.stderr)
         index = form.find(' if ')
         form = form[0:index]
 
-    return form
+    return check_expr(form)
 
 class BadRef(Exception):
     def __init__(self, v):
@@ -362,14 +371,14 @@ for i in info:
 
         expr = j["MetricExpr"]
         expr = re.sub(r":USER", ":u", expr)
-        j["MetricExpr"] = expr
+        j["MetricExpr"] = check_expr(expr)
 
         if j["MetricName"] == "Kernel_Utilization":
             expr = j["MetricExpr"]
             expr = re.sub(r":u", ":k", expr)
             expr = re.sub(r":SUP", ":k", expr)
             expr = re.sub(r"CPU_CLK_UNHALTED.REF_TSC", "CPU_CLK_UNHALTED.THREAD", expr)
-            j["MetricExpr"] = expr
+            j["MetricExpr"] = check_expr(expr)
 
         if args.unit:
             j["Unit"] = args.unit
