@@ -227,11 +227,6 @@ def fixup(form, ebs_mode):
         if m:
             form = m.group(1)
 
-    if "if" in form:
-        # print("unhandled if", form, file=sys.stderr)
-        index = form.find(' if ')
-        form = form[0:index]
-
     return check_expr(form)
 
 class BadRef(Exception):
