@@ -227,6 +227,10 @@ def fixup(form, ebs_mode):
         if m:
             form = m.group(1)
 
+        m = re.match(r'(.*) if 0 else (.*)', form)
+        if m:
+            form = m.group(2)
+
     return check_expr(form)
 
 class BadRef(Exception):
