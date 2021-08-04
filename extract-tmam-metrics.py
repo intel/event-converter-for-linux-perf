@@ -192,6 +192,7 @@ def fixup(form, ebs_mode):
             form = form.replace(j, update_fix(r))
 
     form = re.sub(r":sup", ":u", form)
+    form = re.sub(r":perf_metrics", "", form)
     form = re.sub(r"\bTSC\b", "msr@tsc@", form)
     form = re.sub(r"\bCLKS\b", "CPU_CLK_UNHALTED.THREAD", form)
     form = form.replace("_PS", "")
