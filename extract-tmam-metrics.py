@@ -412,4 +412,4 @@ for i in info:
 
 jo = jo + je
 
-print(json.dumps(jo, indent=4, separators=(',', ': ')))
+print(json.dumps(jo, sort_keys=True, indent=4, separators=(',', ': ')))
