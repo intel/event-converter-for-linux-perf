@@ -350,7 +350,7 @@ for i in info:
             return
         if "PERF_METRICS" in form:
             return
-	if "Mispredicts_Resteers" in form:
+        if "Mispredicts_Resteers" in form:
             return
         print(name, form, file=sys.stderr)
 
