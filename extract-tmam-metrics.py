@@ -351,7 +351,7 @@ for i in info:
         if "PERF_METRICS" in form:
             return
 	if "Mispredicts_Resteers" in form:
-	    return
+            return
         print(name, form, file=sys.stderr)
 
         if (locate != ""):
