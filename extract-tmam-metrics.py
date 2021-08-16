@@ -346,7 +346,7 @@ for i in info:
             return
         if group.endswith(';'):
             group = group.rstrip(';')
-        if group == "TopdownL1" or group == "TmaL1" or group == "TopdownL1_SMT" or group == "TmaL1_SMT":
+        if (args.cpu == "ICX" or args.cpu == "ICL") and (group == "TopdownL1" or group == "TmaL1" or group == "TopdownL1_SMT" or group == "TmaL1_SMT"):
             return
         if "PERF_METRICS" in form:
             return
