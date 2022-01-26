@@ -26,8 +26,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# extract metrics for cpu from TMAM spreadsheet and generate JSON metrics files
-# extract-tmam-metrics.py CPU tmam-csv-file.csv > cpu-metrics.json
+# extract metrics for cpu from TMA spreadsheet and generate JSON metrics files
+# extract-tma-metrics.py CPU tma-csv-file.csv > cpu-metrics.json
 from __future__ import print_function
 import csv
 import argparse

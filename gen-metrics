@@ -26,20 +26,20 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# generate json metric files in perf tree from TMAM
+# generate json metric files in perf tree from TMA
 # gen-metrics TMEM-file linux-tree
 
 
 PATH=$PATH:.
 
-TMAM=$1
+TMA=$1
 LINUX=$2
 
 set -e
 set -x
 
 gen() {
-	extract-tmam-metrics.py $1 $TMAM > x.json
+	extract-tma-metrics.py $1 $TMA > x.json
 	merge-json x.json cstate.json > $LINUX/tools/perf/pmu-events/arch/x86/$2
 }
 

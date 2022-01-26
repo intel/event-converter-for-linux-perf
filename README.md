@@ -25,12 +25,12 @@ EXTRACTMETRICS
   - EXTRACTMETRICS PublicTMASpreadsheet.CSV
   - see example below
 
-extract-tmam-metrics.py
-  - extract metrics for cpu from TMAM spreadsheet and generate JSON metrics files
-  - extract-tmam-metrics.py CPU tmam-csv-file.csv > cpu-metrics.json
+extract-tma-metrics.py
+  - extract metrics for cpu from TMA spreadsheet and generate JSON metrics files
+  - extract-tma-metrics.py CPU tma-csv-file.csv > cpu-metrics.json
 
 gen-metrics
-  - generate json metric files in perf tree from TMAM
+  - generate json metric files in perf tree from TMA
   - gen-metrics TMEM-file linux-tree
 
 json2csv.py
@@ -121,7 +121,7 @@ are downloaded from https://download.01.org/perfmon/.
 
 3. Generate metrics for CLX
 
-$ python extract-tmam-metrics.py CLX TMA_Metrics.csv
+$ python extract-tma-metrics.py CLX TMA_Metrics.csv
 
 TMA_Metrics.csv is downloaded from //download.01.org/perfmon/.
 
