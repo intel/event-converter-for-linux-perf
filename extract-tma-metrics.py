@@ -191,7 +191,9 @@ def fixup(form, ebs_mode):
         for j, r in event_fixes:
             form = form.replace(j, update_fix(r))
 
-    form = re.sub(r":sup", ":u", form)
+    form = re.sub(r":sup", ":k", form)
+    form = re.sub(r":SUP", ":k", form)
+    form = re.sub(r":percore", "", form)
     form = re.sub(r":perf_metrics", "", form)
     form = re.sub(r"\bTSC\b", "msr@tsc@", form)
     form = re.sub(r"\bCLKS\b", "CPU_CLK_UNHALTED.THREAD", form)
@@ -200,7 +202,8 @@ def fixup(form, ebs_mode):
     form = form.replace("#Memory == 1", "1" if args.memory else "0")
     form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu@\1\\,cmask\\=\2@', form)
     form = re.sub(r'(cpu@.+)@:e1', r'\1\\,edge@', form)
-    form = form.replace("#(", "(") # XXX hack, shouldn't be needed
+    form = form.replace("##?(", "(") # XXX hack, shouldn't be needed
+    form = form.replace("##(", "(") # XXX hack, shouldn't be needed
     form = check_expr(form)
 
     if "#EBS_Mode" in form:
@@ -346,8 +349,8 @@ for i in info:
             return
         if group.endswith(';'):
             group = group.rstrip(';')
-        if (args.cpu == "ICX" or args.cpu == "ICL") and (group == "TopdownL1" or group == "TmaL1" or group == "TopdownL1_SMT" or group == "TmaL1_SMT"):
-            return
+        if group.startswith(';'):
+            group = group[1:]
         if "PERF_METRICS" in form:
             return
         if "Mispredicts_Resteers" in form:
