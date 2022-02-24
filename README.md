@@ -92,7 +92,12 @@ rev-event
 uncore_csv_json.py
   - generate split uncore json from csv spreadsheet input
   - uncore_csv_json.py csv orig-pme-json targetdir
+
+hybrid-json-to-perf-json.py
+  - create atom and core hybrid event list JSONs
+  - hybrid-json-to-perf-json.py atomjson corejson
   - see example below
+
 
 Examples:
 ---------
@@ -109,7 +114,20 @@ virtual-memory.json
 
 skylakex_core_v1.24.json is downloaded from https://download.01.org/perfmon/.
 
-2. Generate uncore event json
+2. Generate core event JSON for the Hybrid platforms, such as Alderlake
+
+./hybrid-json-to-perf-json.py alderlake_gracemont_core_v1.06.json alderlake_gracemont_core_v1.06.json --outdir out
+
+The jsons "cache.json, floating-point.json, frontend.json, memory.json,
+other.json, pipeline.json, virtual-memory.json" will be created under directory
+"out".
+
+In each json, it contains both atom event and core event.
+
+Both alderlake_gracemont_core_v1.06.json and alderlake_goldencove_core_v1.06.json are
+downloaded from https://download.01.org/perfmon/.
+
+3. Generate uncore event json
 
 $ python uncore_csv_json.py --all perf-uncore-events-clx.csv cascadelakex_uncore_v1.11.json ./clx-output cascadelakex_uncore_v1.11_experimental.json
 ......
@@ -119,7 +137,7 @@ generating Uncore-Other
 cascadelakex_uncore_v1.11.json and cascadelakex_uncore_v1.11_experimental.json
 are downloaded from https://download.01.org/perfmon/.
 
-3. Generate metrics for CLX
+4. Generate metrics for CLX
 
 $ python extract-tma-metrics.py CLX TMA_Metrics.csv
 
@@ -130,4 +148,4 @@ $ ./EXTRACTMETRICS TMA_Metrics.csv
 
 Andi Kleen <ak@linux.intel.com>
 Liang Kan <kan.liang@intel.com>
-Jin Yao <yao.jin@linux.intel.com>
+Xing Zhengjun <zhengjun.xing@linux.intel.com>
