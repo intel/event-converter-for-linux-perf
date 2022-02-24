@@ -135,6 +135,8 @@ namemap = (
 ("BACLEAR", "Pipeline"),
 ("EXE_ACTIVITY", "Pipeline"),
 ("RS_EVENTS", "Pipeline"),
+("LD_HEAD", "Memory"),
+("TOPDOWN", "Pipeline"),
 )
 
 def gen_topic(name):
