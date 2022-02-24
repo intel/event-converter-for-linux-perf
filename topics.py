@@ -137,6 +137,10 @@ namemap = (
 ("RS_EVENTS", "Pipeline"),
 ("LD_HEAD", "Memory"),
 ("TOPDOWN", "Pipeline"),
+("OCR*L3_HIT*", "Cache"),
+("SERIALIZATION.NON_C01_MS_SCB", "Pipeline"),
+("MEMORY_ACTIVITY", "Memory"),
+("SW_PREFETCH_ACCESS", "Cache"),
 )
 
 def gen_topic(name):
