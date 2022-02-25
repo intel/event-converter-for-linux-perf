@@ -93,16 +93,16 @@ ratio_column = {
     "IVB": ("IVB", "SNB", ),
     "HSW": ("HSW", "IVB", "SNB", ),
     "HSX": ("HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
-    "BDW/BDW-DE": ("BDW/BDW-DE", "HSW", "IVB", "SNB", ),
-    "BDX": ("BDX", "BDW/BDW-DE", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "BDW": ("BDW", "HSW", "IVB", "SNB", ),
+    "BDX/BDW-DE": ("BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
     "SNB": ("SNB", ),
     "JKT/SNB-EP": ("JKT/SNB-EP", "SNB"),
-    "SKL/KBL": ("SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
-    "SKX": ("SKX", "SKL/KBL", "BDX", "BDW/BDW-DE", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
-    "KBLR/CFL": ("KBLR/CFL", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
-    "CLX": ("CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX", "BDW/BDW-DE", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
-    "ICL": ("ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
-    "ICX": ("ICX", "ICL", "CNL", "CPX", "CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX", "BDW/BDW-DE", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "SKL/KBL": ("SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
+    "SKX": ("SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "KBLR/CFL": ("KBLR/CFL", "SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
+    "CLX": ("CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "ICL": ("ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
+    "ICX": ("ICX", "ICL", "CNL", "CPX", "CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
 }
 
 ap = argparse.ArgumentParser()
@@ -389,6 +389,26 @@ for i in info:
             expr = re.sub(r":SUP", ":k", expr)
             expr = re.sub(r"CPU_CLK_UNHALTED.REF_TSC", "CPU_CLK_UNHALTED.THREAD", expr)
             j["MetricExpr"] = check_expr(expr)
+
+        if args.cpu == "BDW-DE":
+            if ["MetricName"] == "Page_Walks_Utilization":
+                j["MetricExpr"] = ("( cpu@ITLB_MISSES.WALK_DURATION\\,cmask\\=1@ + "
+                           "cpu@DTLB_LOAD_MISSES.WALK_DURATION\\,cmask\\=1@ + "
+                           "cpu@DTLB_STORE_MISSES.WALK_DURATION\\,cmask\\=1@ + "
+                           "7 * ( DTLB_STORE_MISSES.WALK_COMPLETED + "
+                           "DTLB_LOAD_MISSES.WALK_COMPLETED + "
+                           "ITLB_MISSES.WALK_COMPLETED ) ) / "
+                           "CPU_CLK_UNHALTED.THREAD")
+            if ["MetricName"] == "Page_Walks_Utilization_SMT":
+                j["MetricExpr"] = ("( cpu@ITLB_MISSES.WALK_DURATION\\,cmask\\=1@ + "
+                           "cpu@DTLB_LOAD_MISSES.WALK_DURATION\\,cmask\\=1@ + "
+                           "cpu@DTLB_STORE_MISSES.WALK_DURATION\\,cmask\\=1@ + "
+                           "7 * ( DTLB_STORE_MISSES.WALK_COMPLETED + "
+                           "DTLB_LOAD_MISSES.WALK_COMPLETED + "
+                           "ITLB_MISSES.WALK_COMPLETED ) ) / ( ( "
+                           "CPU_CLK_UNHALTED.THREAD / 2 ) * ( 1 + "
+                           "CPU_CLK_UNHALTED.ONE_THREAD_ACTIVE / "
+                           "CPU_CLK_UNHALTED.REF_XCLK ) )")
 
         if args.unit:
             j["Unit"] = args.unit

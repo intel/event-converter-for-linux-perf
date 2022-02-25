@@ -135,9 +135,9 @@ declare -A ARCH_NAMES=(
 )
 
 declare -A TMA_MODELS=(
-  ["BDW"]="BDW/BDW-DE"
-  ["BDW-DE"]="BDW/BDW-DE"
-  ["BDX"]="BDX"
+  ["BDW"]="BDW"
+  ["BDW-DE"]="BDX/BDW-DE"
+  ["BDX"]="BDX/BDW-DE"
   ["CLX"]="CLX"
   ["HSW"]="HSW"
   ["HSX"]="HSX"
@@ -157,6 +157,9 @@ for i in "${FILES[@]}"
 do
   echo "${PERFMON_URL}/$i"
 done | wget -i - -P ${DATA_PATH} -x -nH --cut-dirs=1
+
+# Correct BDW-DE that should be with the BDX column.
+sed -i 's@,BDX,BDW/BDW-DE,@,BDX/BDW-DE,BDW,@' data/TMA_Metrics-full.csv
 
 # Convert 01.org json to perf json
 for short in "${!ARCH_NAMES[@]}"
@@ -188,3 +191,9 @@ do
     ${DATA_PATH}/TMA_Metrics-full.csv \
     > ${PMU_EVENTS_PATH}/${ARCH_NAMES[$short],,}/${short,,}-metrics.json
 done
+
+# Match perf's path expectation.
+mv ${PMU_EVENTS_PATH}/broadwellde/bdw-de-metrics.json \
+  ${PMU_EVENTS_PATH}/broadwellde/bdwde-metrics.json
+
+echo SUCCESS!
