@@ -116,7 +116,7 @@ skylakex_core_v1.24.json is downloaded from https://download.01.org/perfmon/.
 
 2. Generate core event JSON for the Hybrid platforms, such as Alderlake
 
-./hybrid-json-to-perf-json.py alderlake_gracemont_core_v1.06.json alderlake_gracemont_core_v1.06.json --outdir out
+./hybrid-json-to-perf-json.py alderlake_gracemont_core_v1.06.json alderlake_goldencove_core_v1.06.json --outdir out
 
 The jsons "cache.json, floating-point.json, frontend.json, memory.json,
 other.json, pipeline.json, virtual-memory.json" will be created under directory
