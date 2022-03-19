@@ -52,6 +52,8 @@ args = ap.parse_args()
 def read_events(fn):
     events = {}
     j = json.load(open(fn, "r"))
+    if isinstance(j, dict) and j["Header"]:
+        j = j["Events"]
     for l in j:
         events[l["EventName"]] = l
     return events

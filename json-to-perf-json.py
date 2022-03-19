@@ -46,6 +46,8 @@ args = ap.parse_args()
 
 oname = perfjson.gen_oname(args.jsonfile.name).replace(".json", "").split("_")[0]
 jf = json.load(args.jsonfile)
+if isinstance(jf, dict) and jf["Header"]:
+    jf = jf["Events"]
 perfjson.cleanjf(jf)
 jf = perfjson.del_dup_events(jf)
 jf = map(perfjson.fix_names, jf)

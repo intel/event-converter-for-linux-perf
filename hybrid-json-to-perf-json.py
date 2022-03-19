@@ -42,6 +42,8 @@ def combine_jsons(atom_path, core_path, name, out_path):
     if len(atom_path) > 0:
         f = open(atom_path, 'r')
         ja = json.load(f)
+        if isinstance(ja, dict) and ja["Header"]:
+            ja = ja["Events"]
         for l in ja:
             jn.append(l)
         f.close()
@@ -49,6 +51,8 @@ def combine_jsons(atom_path, core_path, name, out_path):
     if len(core_path) > 0:
         f = open(core_path, 'r')
         jc = json.load(f)
+        if isinstance(jc, dict) and jc["Header"]:
+            jc = jc["Events"]
         for l in jc:
             jn.append(l)
         f.close()
