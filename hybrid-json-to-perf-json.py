@@ -59,6 +59,7 @@ def combine_jsons(atom_path, core_path, name, out_path):
 
     ofile = open("%s/%s" % (out_path, name), "w")
     json.dump(jn, ofile, sort_keys=True, indent=4, separators=(',', ': '))
+    ofile.write("\n")
     ofile.close()
 
 for s in inter:
