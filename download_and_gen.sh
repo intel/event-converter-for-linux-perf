@@ -187,7 +187,6 @@ do
     --expr-events 100 \
     --extramodel \
     "$short" "$model" \
-    --extrajson ./cstate.json \
     ${DATA_PATH}/TMA_Metrics-full.csv \
     > ${PMU_EVENTS_PATH}/${ARCH_NAMES[$short],,}/${short,,}-metrics.json
 done

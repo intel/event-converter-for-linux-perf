@@ -105,6 +105,19 @@ ratio_column = {
     "ICX": ("ICX", "ICL", "CNL", "CPX", "CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
 }
 
+cstates = [
+    (["NHM", "WSM"], [3, 6], [3, 6, 7]),
+    (["SNB", "IVB", "HSW", "BDW", "BDX", "SKL", "SKX", "CLX", "CPX", "HSX", "IVT", "JKT"], [3, 6, 7], [2, 3, 6, 7]),
+    (["KBL"], [3, 6, 7], [2, 3, 6, 7]),
+    (["CNL"], [1, 3, 6, 7], [2, 3, 6, 7, 8, 9, 10]),
+    (["ICL", "TGL", "RKL"], [6, 7], [2, 3, 6, 7, 8, 9, 10]),
+    (["ICX"], [1, 6], [2, 6]),
+    (["ADL"], [1, 6, 7],  [2, 3, 6, 7, 8, 9, 10]),
+    (["SLM"], [1, 6],  [6]),
+    (["KNL", "KNM"], [6],  [2, 3, 6]),
+    (["GLM", "SNR"], [1, 3, 6],  [2, 3, 6, 10]),
+]
+
 ap = argparse.ArgumentParser()
 ap.add_argument('cpu')
 ap.add_argument('csvfile', type=argparse.FileType('r'))
@@ -317,11 +330,39 @@ def count_metric_events(v):
     global counts
     counts = counts + 1
 
+def find_cstates(cpu):
+    for (cpu_matches, core_cstates, pkg_cstates) in cstates:
+        for x in cpu_matches:
+            if cpu.startswith(x):
+                return (core_cstates, pkg_cstates)
+    raise Exception("Unknown cstates for CPU " + cpu)
+
+def cstate_json(cpu):
+    (core_cstates, pkg_cstates) = find_cstates(cpu)
+    result = []
+    for x in core_cstates:
+        result.append({
+            "MetricExpr": "(cstate_core@c{}\\-residency@ / msr@tsc@) * 100".format(x),
+            "MetricGroup": "Power",
+            "BriefDescription": "C{} residency percent per core".format(x),
+            "MetricName": "C{}_Core_Residency".format(x)
+        })
+    for x in pkg_cstates:
+        result.append({
+            "MetricExpr": "(cstate_pkg@c{}\\-residency@ / msr@tsc@) * 100".format(x),
+            "MetricGroup": "Power",
+            "BriefDescription": "C{} residency percent per package".format(x),
+            "MetricName": "C{}_Pkg_Residency".format(x)
+        })
+    return result
+
 jo = []
 
 je = []
 if args.extrajson:
     je = json.loads(open(args.extrajson, "r").read())
+
+je.extend(cstate_json(args.cpu))
 
 for i in info:
     if i[0] in ignore:
