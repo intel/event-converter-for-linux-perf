@@ -93,17 +93,30 @@ ratio_column = {
     "IVB": ("IVB", "SNB", ),
     "HSW": ("HSW", "IVB", "SNB", ),
     "HSX": ("HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
-    "BDW/BDW-DE": ("BDW/BDW-DE", "HSW", "IVB", "SNB", ),
-    "BDX": ("BDX", "BDW/BDW-DE", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "BDW": ("BDW", "HSW", "IVB", "SNB", ),
+    "BDX/BDW-DE": ("BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
     "SNB": ("SNB", ),
     "JKT/SNB-EP": ("JKT/SNB-EP", "SNB"),
-    "SKL/KBL": ("SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
-    "SKX": ("SKX", "SKL/KBL", "BDX", "BDW/BDW-DE", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
-    "KBLR/CFL": ("KBLR/CFL", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
-    "CLX": ("CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX", "BDW/BDW-DE", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
-    "ICL": ("ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
-    "ICX": ("ICX", "ICL", "CNL", "CPX", "CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX", "BDW/BDW-DE", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "SKL/KBL": ("SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
+    "SKX": ("SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "KBLR/CFL": ("KBLR/CFL", "SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
+    "CLX": ("CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "ICL": ("ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
+    "ICX": ("ICX", "ICL", "CNL", "CPX", "CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
 }
+
+cstates = [
+    (["NHM", "WSM"], [3, 6], [3, 6, 7]),
+    (["SNB", "IVB", "HSW", "BDW", "BDX", "SKL", "SKX", "CLX", "CPX", "HSX", "IVT", "JKT"], [3, 6, 7], [2, 3, 6, 7]),
+    (["KBL"], [3, 6, 7], [2, 3, 6, 7]),
+    (["CNL"], [1, 3, 6, 7], [2, 3, 6, 7, 8, 9, 10]),
+    (["ICL", "TGL", "RKL"], [6, 7], [2, 3, 6, 7, 8, 9, 10]),
+    (["ICX"], [1, 6], [2, 6]),
+    (["ADL"], [1, 6, 7],  [2, 3, 6, 7, 8, 9, 10]),
+    (["SLM"], [1, 6],  [6]),
+    (["KNL", "KNM"], [6],  [2, 3, 6]),
+    (["GLM", "SNR"], [1, 3, 6],  [2, 3, 6, 10]),
+]
 
 ap = argparse.ArgumentParser()
 ap.add_argument('cpu')
@@ -191,7 +204,9 @@ def fixup(form, ebs_mode):
         for j, r in event_fixes:
             form = form.replace(j, update_fix(r))
 
-    form = re.sub(r":sup", ":u", form)
+    form = re.sub(r":sup", ":k", form)
+    form = re.sub(r":SUP", ":k", form)
+    form = re.sub(r":percore", "", form)
     form = re.sub(r":perf_metrics", "", form)
     form = re.sub(r"\bTSC\b", "msr@tsc@", form)
     form = re.sub(r"\bCLKS\b", "CPU_CLK_UNHALTED.THREAD", form)
@@ -200,7 +215,8 @@ def fixup(form, ebs_mode):
     form = form.replace("#Memory == 1", "1" if args.memory else "0")
     form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu@\1\\,cmask\\=\2@', form)
     form = re.sub(r'(cpu@.+)@:e1', r'\1\\,edge@', form)
-    form = form.replace("#(", "(") # XXX hack, shouldn't be needed
+    form = form.replace("##?(", "(") # XXX hack, shouldn't be needed
+    form = form.replace("##(", "(") # XXX hack, shouldn't be needed
     form = check_expr(form)
 
     if "#EBS_Mode" in form:
@@ -314,11 +330,39 @@ def count_metric_events(v):
     global counts
     counts = counts + 1
 
+def find_cstates(cpu):
+    for (cpu_matches, core_cstates, pkg_cstates) in cstates:
+        for x in cpu_matches:
+            if cpu.startswith(x):
+                return (core_cstates, pkg_cstates)
+    raise Exception("Unknown cstates for CPU " + cpu)
+
+def cstate_json(cpu):
+    (core_cstates, pkg_cstates) = find_cstates(cpu)
+    result = []
+    for x in core_cstates:
+        result.append({
+            "MetricExpr": "(cstate_core@c{}\\-residency@ / msr@tsc@) * 100".format(x),
+            "MetricGroup": "Power",
+            "BriefDescription": "C{} residency percent per core".format(x),
+            "MetricName": "C{}_Core_Residency".format(x)
+        })
+    for x in pkg_cstates:
+        result.append({
+            "MetricExpr": "(cstate_pkg@c{}\\-residency@ / msr@tsc@) * 100".format(x),
+            "MetricGroup": "Power",
+            "BriefDescription": "C{} residency percent per package".format(x),
+            "MetricName": "C{}_Pkg_Residency".format(x)
+        })
+    return result
+
 jo = []
 
 je = []
 if args.extrajson:
     je = json.loads(open(args.extrajson, "r").read())
+
+je.extend(cstate_json(args.cpu))
 
 for i in info:
     if i[0] in ignore:
@@ -346,8 +390,8 @@ for i in info:
             return
         if group.endswith(';'):
             group = group.rstrip(';')
-        if (args.cpu == "ICX" or args.cpu == "ICL") and (group == "TopdownL1" or group == "TmaL1" or group == "TopdownL1_SMT" or group == "TmaL1_SMT"):
-            return
+        if group.startswith(';'):
+            group = group[1:]
         if "PERF_METRICS" in form:
             return
         if "Mispredicts_Resteers" in form:
@@ -386,6 +430,26 @@ for i in info:
             expr = re.sub(r":SUP", ":k", expr)
             expr = re.sub(r"CPU_CLK_UNHALTED.REF_TSC", "CPU_CLK_UNHALTED.THREAD", expr)
             j["MetricExpr"] = check_expr(expr)
+
+        if args.cpu == "BDW-DE":
+            if ["MetricName"] == "Page_Walks_Utilization":
+                j["MetricExpr"] = ("( cpu@ITLB_MISSES.WALK_DURATION\\,cmask\\=1@ + "
+                           "cpu@DTLB_LOAD_MISSES.WALK_DURATION\\,cmask\\=1@ + "
+                           "cpu@DTLB_STORE_MISSES.WALK_DURATION\\,cmask\\=1@ + "
+                           "7 * ( DTLB_STORE_MISSES.WALK_COMPLETED + "
+                           "DTLB_LOAD_MISSES.WALK_COMPLETED + "
+                           "ITLB_MISSES.WALK_COMPLETED ) ) / "
+                           "CPU_CLK_UNHALTED.THREAD")
+            if ["MetricName"] == "Page_Walks_Utilization_SMT":
+                j["MetricExpr"] = ("( cpu@ITLB_MISSES.WALK_DURATION\\,cmask\\=1@ + "
+                           "cpu@DTLB_LOAD_MISSES.WALK_DURATION\\,cmask\\=1@ + "
+                           "cpu@DTLB_STORE_MISSES.WALK_DURATION\\,cmask\\=1@ + "
+                           "7 * ( DTLB_STORE_MISSES.WALK_COMPLETED + "
+                           "DTLB_LOAD_MISSES.WALK_COMPLETED + "
+                           "ITLB_MISSES.WALK_COMPLETED ) ) / ( ( "
+                           "CPU_CLK_UNHALTED.THREAD / 2 ) * ( 1 + "
+                           "CPU_CLK_UNHALTED.ONE_THREAD_ACTIVE / "
+                           "CPU_CLK_UNHALTED.REF_XCLK ) )")
 
         if args.unit:
             j["Unit"] = args.unit
