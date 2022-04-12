@@ -123,6 +123,7 @@ ap.add_argument('cpu')
 ap.add_argument('csvfile', type=argparse.FileType('r'))
 ap.add_argument('--verbose', action='store_true')
 ap.add_argument('--memory', action='store_true')
+ap.add_argument('--cstate', action='store_true')
 ap.add_argument('--expr-events')
 ap.add_argument('--extramodel')
 ap.add_argument('--extrajson')
@@ -361,8 +362,8 @@ jo = []
 je = []
 if args.extrajson:
     je = json.loads(open(args.extrajson, "r").read())
-
-je.extend(cstate_json(args.cpu))
+if args.cstate:
+    je.extend(cstate_json(args.cpu))
 
 for i in info:
     if i[0] in ignore:

@@ -184,6 +184,7 @@ do
   model=${TMA_MODELS[$short]}
   python3 extract-tma-metrics.py \
     --memory \
+    --cstate \
     --expr-events 100 \
     --extramodel \
     "$short" "$model" \
