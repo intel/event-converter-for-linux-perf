@@ -143,8 +143,16 @@ $ python extract-tma-metrics.py CLX TMA_Metrics.csv
 
 TMA_Metrics.csv is downloaded from //download.01.org/perfmon/.
 
-4. Generate metrics for all archs
+5. Generate metrics for all archs
+
 $ ./EXTRACTMETRICS TMA_Metrics.csv
+
+6. Generate metrics for hybrid platforms
+
+$ ./EXTRACTMETRICS-HYBRID TMA_Metrics-full.csv  E-core_TMA_Metrics.csv
+
+
+
 
 Andi Kleen <ak@linux.intel.com>
 Liang Kan <kan.liang@intel.com>

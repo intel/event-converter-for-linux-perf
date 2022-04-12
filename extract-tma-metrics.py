@@ -103,6 +103,10 @@ ratio_column = {
     "CLX": ("CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
     "ICL": ("ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
     "ICX": ("ICX", "ICL", "CNL", "CPX", "CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "RKL": ("RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
+    "TGL": ("TGL", "RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
+    "ADL": ("ADL", "TGL", "RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
+    "GRT": ("GRT"),
 }
 
 cstates = [
@@ -112,7 +116,7 @@ cstates = [
     (["CNL"], [1, 3, 6, 7], [2, 3, 6, 7, 8, 9, 10]),
     (["ICL", "TGL", "RKL"], [6, 7], [2, 3, 6, 7, 8, 9, 10]),
     (["ICX"], [1, 6], [2, 6]),
-    (["ADL"], [1, 6, 7],  [2, 3, 6, 7, 8, 9, 10]),
+    (["ADL", "GRT"], [1, 6, 7],  [2, 3, 6, 7, 8, 9, 10]),
     (["SLM"], [1, 6],  [6]),
     (["KNL", "KNM"], [6],  [2, 3, 6]),
     (["GLM", "SNR"], [1, 3, 6],  [2, 3, 6, 10]),
@@ -210,7 +214,10 @@ def fixup(form, ebs_mode):
     form = re.sub(r":percore", "", form)
     form = re.sub(r":perf_metrics", "", form)
     form = re.sub(r"\bTSC\b", "msr@tsc@", form)
-    form = re.sub(r"\bCLKS\b", "CPU_CLK_UNHALTED.THREAD", form)
+    if (args.unit == "cpu_atom"):
+        form = re.sub(r"\bCLKS\b", "CPU_CLK_UNHALTED.CORE", form)
+    else:
+        form = re.sub(r"\bCLKS\b", "CPU_CLK_UNHALTED.THREAD", form)
     form = form.replace("_PS", "")
     form = form.replace("\b1==1\b", "1")
     form = form.replace("#Memory == 1", "1" if args.memory else "0")
@@ -278,7 +285,11 @@ def resolve_all(form, ebs_mode=-1):
         if v == "#PERF_METRICS_MSR":
             return v
         if v == "#Retired_Slots":
-            return "UOPS_RETIRED.RETIRE_SLOTS"
+            if "ICL" in ratio_column[args.cpu]:
+                #"Retiring * SLOTS"
+                return "(" + infoname["Retiring"] + ")" + " * " + "(" + infoname["SLOTS"]  + ")"
+            else:
+                return "UOPS_RETIRED.RETIRE_SLOTS"
         if v == "#DurationTimeInSeconds":
             return "duration_time"
         if v == "#Model":
@@ -425,7 +436,7 @@ for i in info:
         expr = re.sub(r":USER", ":u", expr)
         j["MetricExpr"] = check_expr(expr)
 
-        if j["MetricName"] == "Kernel_Utilization":
+        if j["MetricName"] == "Kernel_Utilization" or j["MetricName"] == "Kernel_CPI":
             expr = j["MetricExpr"]
             expr = re.sub(r":u", ":k", expr)
             expr = re.sub(r":SUP", ":k", expr)
