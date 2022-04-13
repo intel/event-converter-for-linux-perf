@@ -93,7 +93,6 @@ def update(j):
     return j
 
 jl = []
-formula1 = []
 added = set()
 c = csv.reader(open(args.csvfile, "r"))
 for l in c:
@@ -182,7 +181,6 @@ for l in c:
     j["Filter"] = filter
     if formula:
         # XXX hack for now
-        formula1 = formula
         nn = newname if newname else name
         formula = re.sub(r"X/", nn+ "/", formula)
         for o in repl_events.keys():
@@ -215,18 +213,6 @@ for l in c:
     if newname:
         j["EventName"] = name
         j["BriefDescription"] = BriefDescription1
-        if formula1:
-            nn = name
-            formula1 = re.sub(r"X/", nn+ "/", formula1)
-            for o in repl_events.keys():
-                if o in formula1 and o not in events:
-                    formula1 = formula1.replace(o, repl_events[o])
-            if "/" in formula1 and "LATENCY" not in nn:
-                j["MetricExpr"] = "(%s) * 100." % (formula1.replace("/", " / "))
-                j["MetricName"] = re.sub(r'UNC_[A-Z]_', '', nn).lower() + " %"
-            else:
-                j["MetricExpr"] = formula1.replace("\n", "")
-                j["MetricName"] = nn
         jl.append(copy.deepcopy(j))
         print("Both event", name, "and its new name", newname, "are supported", file=sys.stderr)
 
