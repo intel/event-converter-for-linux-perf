@@ -38,4 +38,4 @@ for fn in sys.argv[1:]:
     for n in jf:
         all.append(n)
 
-print json.dumps(all, sort_keys=True, indent=4, separators=(',', ': '))
+print(json.dumps(all, sort_keys=True, indent=4, separators=(',', ': ')))
