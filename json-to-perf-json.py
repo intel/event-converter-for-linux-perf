@@ -28,7 +28,6 @@
 
 # generate split perf json files from a single perf json files
 # mapfile still needs to be updated separately
-from __future__ import print_function
 import os
 import itertools
 import json
@@ -36,52 +35,58 @@ import argparse
 import sys
 import perfjson
 
-sys.path.append(os.path.dirname(sys.argv[0]))
 
-ap = argparse.ArgumentParser()
-ap.add_argument('jsonfile', type=argparse.FileType('r'), help="Input json file")
-ap.add_argument('--outdir', default='.')
-ap.add_argument('--unit', default='')
-args = ap.parse_args()
+def json_to_perf_json(in_file :str, outdir :str, unit :str):
+    jf = json.load(in_file)
+    # Newer event files have a header and events list rather than an
+    # just an events list.
+    if isinstance(jf, dict) and jf["Header"]:
+        jf = jf["Events"]
+    perfjson.cleanjf(jf)
+    jf = perfjson.del_dup_events(jf)
+    jf = map(perfjson.fix_names, jf)
+    jf = perfjson.del_special_events(jf)
 
-oname = perfjson.gen_oname(args.jsonfile.name).replace(".json", "").split("_")[0]
-jf = json.load(args.jsonfile)
-if isinstance(jf, dict) and jf["Header"]:
-    jf = jf["Events"]
-perfjson.cleanjf(jf)
-jf = perfjson.del_dup_events(jf)
-jf = map(perfjson.fix_names, jf)
-jf = perfjson.del_special_events(jf)
+    if unit:
+        jf = perfjson.add_unit(jf, unit)
 
-if args.unit:
-    jf = perfjson.add_unit(jf, args.unit)
+    jf = sorted(jf, key=lambda x: x["Topic"])
 
-jf = sorted(jf, key=lambda x: x["Topic"])
+    ofiles = []
+    for topic, nit in itertools.groupby(jf, lambda x: x["Topic"]):
+        def do_strip(n):
+            for k in n.keys():
+                if n[k] is None:
+                    del n[k]
+                    continue
+                n[k] = n[k].strip()
+                if n[k] == "0x00":
+                    del n[k]
+            return n
 
-for topic, nit in itertools.groupby(jf, lambda x: x["Topic"]):
-    def del_topic(n):
-        del n["Topic"]
-        return n
-    def do_strip(n):
-        for k in n.keys():
-            if n[k] is None:
-                del n[k]
-                continue
-            n[k] = n[k].strip()
-            if n[k] == "0x00":
-                del n[k]
-        return n
+        j2 = list(nit)
+        j2 = map(perfjson.del_topic, j2)
+        j2 = map(do_strip, j2)
+        if not j2:
+            continue
+        topic = topic.replace(" ", "-")
+        fn = topic.lower() + ".json"
+        ofiles.append(fn)
+        ofile = open(f'{outdir}/{fn}', "w")
+        json.dump(sorted(list(j2), key=lambda x: x["EventName"]), ofile,
+                  sort_keys=True, indent=4, separators=(',', ': '))
+        ofile.write("\n")
+        ofile.close()
+    return ofiles
 
-    j2 = list(nit)
-    j2 = map(del_topic, j2)
-    j2 = map(do_strip, j2)
-    if not j2:
-        continue
-    topic = topic.replace(" ", "-")
-    fn = topic.lower() + ".json"
-    print(fn)
-    ofile = open("%s/%s" % (args.outdir, fn), "w")
-    json.dump(sorted(list(j2), key=lambda x: x["EventName"]), ofile,
-              sort_keys=True, indent=4, separators=(',', ': '))
-    ofile.write("\n")
-    ofile.close()
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('jsonfile', type=argparse.FileType('r'), help="Input json file")
+    ap.add_argument('--outdir', default='.')
+    ap.add_argument('--unit', default='')
+    args = ap.parse_args()
+
+    json_to_perf_json(args.jsonfile, args.outdir, args.unit)
+
+if __name__ == '__main__':
+    main()

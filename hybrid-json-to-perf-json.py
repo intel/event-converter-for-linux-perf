@@ -7,6 +7,8 @@ import re
 import json
 import argparse
 import sys
+import importlib
+json_to_perf_json = importlib.import_module("json-to-perf-json")
 
 ap = argparse.ArgumentParser()
 ap.add_argument('atomjson', type=argparse.FileType('r'), help="Input atom json file")
@@ -18,19 +20,8 @@ os.system('rm -rf tmp-atom tmp-core')
 os.system('mkdir -p tmp-atom')
 os.system('mkdir -p tmp-core')
 
-def line_strip(lines):
-    out = []
-    for l in lines:
-        out.append(l.strip('\n'))
-    return out
-
-cmd = os.path.dirname(sys.argv[0]) + "/json-to-perf-json.py --unit cpu_atom --outdir tmp-atom " + args.atomjson.name
-with os.popen(cmd, "r") as p:
-    atom_out = line_strip(p.readlines())
-
-cmd = os.path.dirname(sys.argv[0]) + "/json-to-perf-json.py --unit cpu_core --outdir tmp-core " + args.corejson.name
-with os.popen(cmd, "r") as p:
-    core_out = line_strip(p.readlines())
+atom_out = json_to_perf_json.json_to_perf_json(args.atomjson, "tmp-atom", "cpu_atom")
+core_out = json_to_perf_json.json_to_perf_json(args.corejson, "tmp-core", "cpu_core")
 
 inter = list(set(atom_out).intersection(set(core_out)))
 diff1 = list(set(core_out).difference(set(atom_out)))
