@@ -51,4 +51,4 @@ for j in c:
                 print(j[f])
         except KeyError:
             print("?")
-    print
+    print()
