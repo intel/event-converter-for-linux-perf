@@ -221,7 +221,10 @@ def fixup(form, ebs_mode):
     form = form.replace("_PS", "")
     form = form.replace("\b1==1\b", "1")
     form = form.replace("#Memory == 1", "1" if args.memory else "0")
-    form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu@\1\\,cmask\\=\2@', form)
+    if (args.unit == "cpu_core"):
+        form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu_core@\1\\,cmask\\=\2@', form)
+    else:
+        form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu@\1\\,cmask\\=\2@', form)
     form = re.sub(r'(cpu@.+)@:e1', r'\1\\,edge@', form)
     form = form.replace("##?(", "(") # XXX hack, shouldn't be needed
     form = form.replace("##(", "(") # XXX hack, shouldn't be needed
