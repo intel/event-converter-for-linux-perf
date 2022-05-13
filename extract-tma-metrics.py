@@ -44,6 +44,14 @@ groups = {
     "Turbo_Utilization": "Power",
 }
 
+spr_event_fixes = (
+    ("UNC_CHA_CLOCKTICKS:one_unit", r"uncore_cha_0@event=0x1@"),
+    ("UNC_M_CLOCKTICKS:one_unit", "uncore_imc_0@event=0x1,umask=0x1@"),
+    ("UNC_CHA_TOR_OCCUPANCY.IA_MISS_DRD:c1", r"cha@UNC_CHA_TOR_OCCUPANCY.IA_MISS_DRD,thresh=1@"),
+    ("UNC_M_CAS_COUNT.RD", "uncore_imc@cas_count_read@"),
+    ("UNC_M_CAS_COUNT.WR", "uncore_imc@cas_count_write@"),
+)
+
 icx_event_fixes = (
     ("UNC_CHA_CLOCKTICKS:one_unit", r"cha_0@event=0x0@"),
     ("UNC_M_CLOCKTICKS:one_unit", "imc_0@event=0x0@"),
@@ -106,6 +114,7 @@ ratio_column = {
     "RKL": ("RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
     "TGL": ("TGL", "RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
     "ADL": ("ADL", "TGL", "RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
+    "SPR": ("SPR", "ADL/RPL", "TGL", "RKL", "ICX", "ICL", "CNL", "CPX", "CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP",  "SNB"),
     "GRT": ("GRT"),
 }
 
@@ -115,7 +124,7 @@ cstates = [
     (["KBL"], [3, 6, 7], [2, 3, 6, 7]),
     (["CNL"], [1, 3, 6, 7], [2, 3, 6, 7, 8, 9, 10]),
     (["ICL", "TGL", "RKL"], [6, 7], [2, 3, 6, 7, 8, 9, 10]),
-    (["ICX"], [1, 6], [2, 6]),
+    (["ICX", "SPR"], [1, 6], [2, 6]),
     (["ADL", "GRT"], [1, 6, 7],  [2, 3, 6, 7, 8, 9, 10]),
     (["SLM"], [1, 6],  [6]),
     (["KNL", "KNM"], [6],  [2, 3, 6]),
@@ -202,7 +211,10 @@ def update_fix(x):
 
 def fixup(form, ebs_mode):
     form = check_expr(form)
-    if (args.cpu == "ICX"):
+    if (args.cpu == "SPR"):
+        for j, r in spr_event_fixes:
+            form = form.replace(j, update_fix(r))
+    elif (args.cpu == "ICX"):
         for j, r in icx_event_fixes:
             form = form.replace(j, update_fix(r))
     else:
@@ -225,6 +237,9 @@ def fixup(form, ebs_mode):
         form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu_core@\1\\,cmask\\=\2@', form)
     else:
         form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu@\1\\,cmask\\=\2@', form)
+    form = re.sub(r'([A-Z0-9_.]+):u0x([0-9a-fA-F]+)', r'cpu@\1\\,umask\\=0x\2@', form)
+    form = re.sub(r'([A-Z0-9_.]+):u([0-9a-fA-F]+)', r'cpu@\1\\,umask\\=0x\2@', form)
+    form = re.sub(r"1e12", "1000000000000", form)
     form = re.sub(r'(cpu@.+)@:e1', r'\1\\,edge@', form)
     form = form.replace("##?(", "(") # XXX hack, shouldn't be needed
     form = form.replace("##(", "(") # XXX hack, shouldn't be needed
