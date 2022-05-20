@@ -29,7 +29,7 @@
 # EXTRACTMETRICS-HYBRID Public_PCORE_TMASpreadsheet.CSV Public_ECORE_TMASpreadsheet.CSV
 
 set -e
-
-./extract-tma-metrics.py --unit "cpu_core" --extramodel ADL ADL  $1 > adl-metrics-core.json
-./extract-tma-metrics.py --unit "cpu_atom" --extramodel GRT GRT --cstate $2 > adl-metrics-atom.json
+sed -i 's@,BDX,BDW/BDW-DE,@,BDX/BDW-DE,BDW,@' $1
+./extract-tma-metrics.py --unit "cpu_core" --expr-events 100 --extramodel ADL ADL  $1 > adl-metrics-core.json
+./extract-tma-metrics.py --unit "cpu_atom" --expr-events 100 --extramodel GRT GRT --cstate $2 > adl-metrics-atom.json
 ./merge-json adl-metrics-core.json adl-metrics-atom.json > adl-metrics.json
