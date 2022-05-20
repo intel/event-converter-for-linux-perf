@@ -102,18 +102,18 @@ ratio_column = {
     "HSW": ("HSW", "IVB", "SNB", ),
     "HSX": ("HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
     "BDW": ("BDW", "HSW", "IVB", "SNB", ),
-    "BDX/BDW-DE": ("BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "BDX": ("BDX", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
     "SNB": ("SNB", ),
     "JKT/SNB-EP": ("JKT/SNB-EP", "SNB"),
     "SKL/KBL": ("SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
-    "SKX": ("SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "SKX": ("SKX", "SKL/KBL", "BDX", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
     "KBLR/CFL": ("KBLR/CFL", "SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
-    "CLX": ("CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "CLX": ("CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
     "ICL": ("ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
-    "ICX": ("ICX", "ICL", "CNL", "CPX", "CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
+    "ICX": ("ICX", "ICL", "CNL", "CPX", "CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
     "RKL": ("RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
     "TGL": ("TGL", "RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
-    "ADL": ("ADL", "TGL", "RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
+    "ADL/RPL": ("ADL/RPL", "TGL", "RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
     "SPR": ("SPR", "ADL/RPL", "TGL", "RKL", "ICX", "ICL", "CNL", "CPX", "CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP",  "SNB"),
     "GRT": ("GRT"),
 }
@@ -234,11 +234,14 @@ def fixup(form, ebs_mode):
     form = form.replace("\b1==1\b", "1")
     form = form.replace("#Memory == 1", "1" if args.memory else "0")
     if (args.unit == "cpu_core"):
+        form = re.sub(r'([A-Z0-9_.]+):c(\d+):e(\d+)', r'cpu_core@\1\\,cmask\\=\2\\,edge\\=\3@', form)
         form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu_core@\1\\,cmask\\=\2@', form)
+        form = re.sub(r'([A-Z0-9_.]+):u0x([0-9a-fA-F]+)', r'cpu_core@\1\\,umask\\=0x\2@', form)
     else:
+        form = re.sub(r'([A-Z0-9_.]+):c(\d+):e(\d+)', r'cpu@\1\\,cmask\\=\2\\,edge\\=\3@', form)
         form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu@\1\\,cmask\\=\2@', form)
-    form = re.sub(r'([A-Z0-9_.]+):u0x([0-9a-fA-F]+)', r'cpu@\1\\,umask\\=0x\2@', form)
-    form = re.sub(r'([A-Z0-9_.]+):u([0-9a-fA-F]+)', r'cpu@\1\\,umask\\=0x\2@', form)
+        form = re.sub(r'([A-Z0-9_.]+):u0x([0-9a-fA-F]+)', r'cpu@\1\\,umask\\=0x\2@', form)
+
     form = re.sub(r"1e12", "1000000000000", form)
     form = re.sub(r'(cpu@.+)@:e1', r'\1\\,edge@', form)
     form = form.replace("##?(", "(") # XXX hack, shouldn't be needed
