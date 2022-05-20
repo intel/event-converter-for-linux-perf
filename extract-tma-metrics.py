@@ -407,6 +407,7 @@ for i in info:
             group = group.rstrip(';')
         if group.startswith(';'):
             group = group[1:]
+        group = group.strip()
         if "PERF_METRICS" in form:
             return
         if "Mispredicts_Resteers" in form:
@@ -419,8 +420,9 @@ for i in info:
         j = {
             "MetricName": name,
             "MetricExpr": form,
-            "MetricGroup": group,
         }
+        if len(group) > 0:
+            j["MetricGroup"] = group
         if desc.count(".") > 1:
             sdesc = re.sub(r'(?<!i\.e)\. .*', '', desc)
             if extra:
