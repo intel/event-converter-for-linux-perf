@@ -105,7 +105,7 @@ ratio_column = {
     "ICX": ("ICX", "ICL", "CNL", "CPX", "CLX", "KBLR/CFL/CML", "SKX", "SKL/KBL", "BDX/BDW-DE", "BDW", "HSX", "HSW", "IVT", "IVB", "JKT/SNB-EP", "SNB"),
     "RKL": ("RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
     "TGL": ("TGL", "RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
-    "ADL": ("ADL", "TGL", "RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW/BDW-DE", "HSW", "IVB", "SNB"),
+    "ADL": ("ADL", "TGL", "RKL", "ICL", "CNL", "KBLR/CFL/CML", "SKL/KBL", "BDW", "HSW", "IVB", "SNB"),
     "GRT": ("GRT"),
 }
 
@@ -407,6 +407,7 @@ for i in info:
             group = group.rstrip(';')
         if group.startswith(';'):
             group = group[1:]
+        group = group.strip()
         if "PERF_METRICS" in form:
             return
         if "Mispredicts_Resteers" in form:
@@ -419,8 +420,9 @@ for i in info:
         j = {
             "MetricName": name,
             "MetricExpr": form,
-            "MetricGroup": group,
         }
+        if len(group) > 0:
+            j["MetricGroup"] = group
         if desc.count(".") > 1:
             sdesc = re.sub(r'(?<!i\.e)\. .*', '', desc)
             if extra:
