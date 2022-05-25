@@ -9,9 +9,9 @@ FILES=(
   "TMA_Metrics-full.csv"
   "mapfile.csv"
   "readme.txt"
-  "ADL/alderlake_goldencove_core_v1.10.json"
-  "ADL/alderlake_gracemont_core_v1.10.json"
-  "ADL/alderlake_uncore_v1.10.json"
+  "ADL/alderlake_goldencove_core_v1.11.json"
+  "ADL/alderlake_gracemont_core_v1.11.json"
+  "ADL/alderlake_uncore_v1.11.json"
   "BDW/broadwell_core_v26.json"
   "BDW/broadwell_fp_arith_inst_v26.json"
   "BDW/broadwell_matrix_bit_definitions_v26.json"
@@ -94,11 +94,11 @@ FILES=(
   "SNR/snowridgex_core_v1.19.json"
   "SNR/snowridgex_uncore_v1.19.json"
   "SNR/snowridgex_uncore_v1.19_experimental.json"
-  "SPR/sapphirerapids_core_v1.01.json"
-  "SPR/sapphirerapids_uncore_v1.01.json"
-  "SPR/sapphirerapids_uncore_v1.01_experimental.json"
-  "TGL/tigerlake_core_v1.06.json"
-  "TGL/tigerlake_uncore_v1.06.json"
+  "SPR/sapphirerapids_core_v1.02.json"
+  "SPR/sapphirerapids_uncore_v1.02.json"
+  "SPR/sapphirerapids_uncore_v1.02_experimental.json"
+  "TGL/tigerlake_core_v1.07.json"
+  "TGL/tigerlake_uncore_v1.07.json"
   "WSM-EP-DP/WestmereEP-DP_core_V2.json"
   "WSM-EP-SP/WestmereEP-SP_core_V3.json"
   "WSM-EX/WestmereEX_core_V3.json"
@@ -146,8 +146,8 @@ declare -A HYBRID_ARCH_NAMES_ATOM=(
 
 declare -A TMA_MODELS=(
   ["BDW"]="BDW"
-  ["BDW-DE"]="BDX/BDW-DE"
-  ["BDX"]="BDX/BDW-DE"
+  ["BDW-DE"]="BDX"
+  ["BDX"]="BDX"
   ["CLX"]="CLX"
   ["HSW"]="HSW"
   ["HSX"]="HSX"
@@ -162,7 +162,7 @@ declare -A TMA_MODELS=(
 )
 
 declare -A HYBRID_TMA_MODELS_CORE=(
-  ["ADL"]="ADL"
+  ["ADL"]="ADL/RPL"
 )
 
 declare -A HYBRID_TMA_MODELS_ATOM=(
@@ -175,9 +175,6 @@ for i in "${FILES[@]}"
 do
   echo "${PERFMON_URL}/$i"
 done | wget -i - -P ${DATA_PATH} -x -nH --cut-dirs=1
-
-# Correct BDW-DE that should be with the BDX column.
-sed -i 's@,BDX,BDW/BDW-DE,@,BDX/BDW-DE,BDW,@' data/TMA_Metrics-full.csv
 
 # Convert 01.org json to perf json
 for short in "${!ARCH_NAMES[@]}"
