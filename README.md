@@ -103,7 +103,7 @@ Examples:
 ---------
 1. Generate core event json for one specified platform, such as skylakex.
 
-$ python json-to-perf-json.py --outdir ./skx-output skylakex_core_v1.24.json
+$ python3 json-to-perf-json.py --outdir ./skx-output skylakex_core_v1.24.json
 cache.json
 floating-point.json
 frontend.json
@@ -116,7 +116,7 @@ skylakex_core_v1.24.json is downloaded from https://download.01.org/perfmon/.
 
 2. Generate core event JSON for the Hybrid platforms, such as Alderlake
 
-./hybrid-json-to-perf-json.py alderlake_gracemont_core_v1.06.json alderlake_goldencove_core_v1.06.json --outdir out
+$ python3 hybrid-json-to-perf-json.py alderlake_gracemont_core_v1.06.json alderlake_goldencove_core_v1.06.json --outdir out
 
 The jsons "cache.json, floating-point.json, frontend.json, memory.json,
 other.json, pipeline.json, virtual-memory.json" will be created under directory
@@ -129,7 +129,7 @@ downloaded from https://download.01.org/perfmon/.
 
 3. Generate uncore event json
 
-$ python uncore_csv_json.py --all perf-uncore-events-clx.csv cascadelakex_uncore_v1.11.json ./clx-output cascadelakex_uncore_v1.11_experimental.json
+$ python3 uncore_csv_json.py --all perf-uncore-events-clx.csv cascadelakex_uncore_v1.11.json ./clx-output cascadelakex_uncore_v1.11_experimental.json
 ......
 generating Uncore-Memory
 generating Uncore-Other
@@ -139,11 +139,11 @@ are downloaded from https://download.01.org/perfmon/.
 
 4. Generate metrics for CLX
 
-$ python extract-tma-metrics.py CLX TMA_Metrics.csv
+$ python3 extract-tma-metrics.py CLX TMA_Metrics.csv
 
 TMA_Metrics.csv is downloaded from //download.01.org/perfmon/.
 
-5. Generate metrics for all archs
+5. Generate metrics for non-hybrid platforms
 
 $ ./EXTRACTMETRICS TMA_Metrics.csv
 
@@ -151,7 +151,10 @@ $ ./EXTRACTMETRICS TMA_Metrics.csv
 
 $ ./EXTRACTMETRICS-HYBRID TMA_Metrics-full.csv  E-core_TMA_Metrics.csv
 
+7. Download the latest event list and metrics JSON files from https://download.01.org/perfmon/
+   Generate perf events and metrics for all platforms.
 
+$ ./download_and_gen.sh
 
 
 Andi Kleen <ak@linux.intel.com>

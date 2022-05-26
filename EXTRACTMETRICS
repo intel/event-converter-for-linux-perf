@@ -32,15 +32,15 @@ set -e
 
 E="--extrajson cstate.json"
 
-./extract-tma-metrics.py --extramodel CLX CLX --memory $E $1 > clx-metrics.json
-./extract-tma-metrics.py --extramodel SKX SKX $E $1 > skx-metrics.json
-./extract-tma-metrics.py --extramodel BDX BDX $E $1 > bdx-metrics.json
-./extract-tma-metrics.py --extramodel HSX HSX $E $1 > hsx-metrics.json
-./extract-tma-metrics.py --extramodel IVT IVT $E $1 > ivt-metrics.json
-./extract-tma-metrics.py --extramodel JKT JKT/SNB-EP $E $1 > jkt-metrics.json
+python3 extract-tma-metrics.py --extramodel CLX CLX --memory $E $1 > clx-metrics.json
+python3 extract-tma-metrics.py --extramodel SKX SKX $E $1 > skx-metrics.json
+python3 extract-tma-metrics.py --extramodel BDX BDX $E $1 > bdx-metrics.json
+python3 extract-tma-metrics.py --extramodel HSX HSX $E $1 > hsx-metrics.json
+python3 extract-tma-metrics.py --extramodel IVT IVT $E $1 > ivt-metrics.json
+python3 extract-tma-metrics.py --extramodel JKT JKT/SNB-EP $E $1 > jkt-metrics.json
 
-./extract-tma-metrics.py --extramodel SKL SKL/KBL $E $1 > skl-metrics.json
-./extract-tma-metrics.py --extramodel BDW BDW/BDW-DE $E $1 > bdw-metrics.json
-./extract-tma-metrics.py --extramodel HSW HSW $E $1 > hsw-metrics.json
-./extract-tma-metrics.py --extramodel IVB IVB $E $1 > ivb-metrics.json
-./extract-tma-metrics.py --extramodel SNB SNB $E $1 > snb-metrics.json
+python3 extract-tma-metrics.py --extramodel SKL SKL/KBL $E $1 > skl-metrics.json
+python3 extract-tma-metrics.py --extramodel BDW BDW/BDW-DE $E $1 > bdw-metrics.json
+python3 extract-tma-metrics.py --extramodel HSW HSW $E $1 > hsw-metrics.json
+python3 extract-tma-metrics.py --extramodel IVB IVB $E $1 > ivb-metrics.json
+python3 extract-tma-metrics.py --extramodel SNB SNB $E $1 > snb-metrics.json
