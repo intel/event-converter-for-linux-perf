@@ -28,7 +28,6 @@
 
 # extract metrics for cpu from TMA spreadsheet and generate JSON metrics files
 # extract-tma-metrics.py CPU tma-csv-file.csv > cpu-metrics.json
-from __future__ import print_function
 import csv
 import argparse
 import re
@@ -221,10 +220,6 @@ def fixup(form, ebs_mode):
         for j, r in event_fixes:
             form = form.replace(j, update_fix(r))
 
-    form = re.sub(r":sup", ":k", form)
-    form = re.sub(r":SUP", ":k", form)
-    form = re.sub(r":percore", "", form)
-    form = re.sub(r":perf_metrics", "", form)
     form = re.sub(r"\bTSC\b", "msr@tsc@", form)
     if (args.unit == "cpu_atom"):
         form = re.sub(r"\bCLKS\b", "CPU_CLK_UNHALTED.CORE", form)
@@ -233,17 +228,37 @@ def fixup(form, ebs_mode):
     form = form.replace("_PS", "")
     form = form.replace("\b1==1\b", "1")
     form = form.replace("#Memory == 1", "1" if args.memory else "0")
-    if (args.unit == "cpu_core"):
-        form = re.sub(r'([A-Z0-9_.]+):c(\d+):e(\d+)', r'cpu_core@\1\\,cmask\\=\2\\,edge\\=\3@', form)
-        form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu_core@\1\\,cmask\\=\2@', form)
-        form = re.sub(r'([A-Z0-9_.]+):u0x([0-9a-fA-F]+)', r'cpu_core@\1\\,umask\\=0x\2@', form)
-    else:
-        form = re.sub(r'([A-Z0-9_.]+):c(\d+):e(\d+)', r'cpu@\1\\,cmask\\=\2\\,edge\\=\3@', form)
-        form = re.sub(r'([A-Z0-9_.]+):c(\d+)', r'cpu@\1\\,cmask\\=\2@', form)
-        form = re.sub(r'([A-Z0-9_.]+):u0x([0-9a-fA-F]+)', r'cpu@\1\\,umask\\=0x\2@', form)
 
-    form = re.sub(r"1e12", "1000000000000", form)
-    form = re.sub(r'(cpu@.+)@:e1', r'\1\\,edge@', form)
+    form = re.sub(r":percore", "", form)
+    form = re.sub(r":perf_metrics", "", form)
+    pmu_prefix = 'cpu'
+    if args.unit == 'cpu_core':
+        pmu_prefix = 'cpu_core'
+    if args.unit == 'cpu_atom':
+        pmu_prefix = 'cpu_atom'
+    changed = True
+    event_pattern = r'[A-Z0-9_.]+'
+    term_pattern = r'[a-z0-9\\=,]+'
+    while changed:
+        changed = False
+        for match, replacement in [
+            (rf'{pmu_prefix}@(' + event_pattern + term_pattern + r')@:sup', rf'{pmu_prefix}@\1@k'),
+            (rf'{pmu_prefix}@(' + event_pattern + term_pattern + r')@:user', rf'{pmu_prefix}@\1@u'),
+            (rf'{pmu_prefix}@(' + event_pattern + term_pattern + r')@:c(\d+)', rf'{pmu_prefix}@\1\\,cmask\\=\2@'),
+            (rf'{pmu_prefix}@(' + event_pattern + term_pattern + r')@:u0x([A-Fa-f0-9]+)', rf'{pmu_prefix}@\1\\,umask\\=0x\2@'),
+            (rf'{pmu_prefix}@(' + event_pattern + term_pattern + r')@:i1', rf'{pmu_prefix}@\1\\,inv@'),
+            (rf'{pmu_prefix}@(' + event_pattern + term_pattern + r')@:e1', rf'{pmu_prefix}@\1\\,edge@'),
+            ('(' + event_pattern + rf'):sup', rf'{pmu_prefix}@\1@k'),
+            ('(' + event_pattern + rf'):user', rf'{pmu_prefix}@\1@u'),
+            ('(' + event_pattern + rf'):c(\d+)', rf'{pmu_prefix}@\1\\,cmask\\=\2@'),
+            ('(' + event_pattern + rf'):u0x([a-fA-F0-9]+)', rf'{pmu_prefix}@\1\\,umask\\=0x\2@'),
+            ('(' + event_pattern + rf'):i1', rf'{pmu_prefix}@\1\\,inv@'),
+            ('(' + event_pattern + rf'):e1', rf'{pmu_prefix}@\1\\,edge@'),
+        ]:
+            new_form = re.sub(match,  replacement, form, re.IGNORECASE)
+            changed = changed or new_form != form
+            form = new_form
+
     form = form.replace("##?(", "(") # XXX hack, shouldn't be needed
     form = form.replace("##(", "(") # XXX hack, shouldn't be needed
     form = check_expr(form)
@@ -466,8 +481,8 @@ for i in info:
             expr = re.sub(r"CPU_CLK_UNHALTED.REF_TSC", "CPU_CLK_UNHALTED.THREAD", expr)
             j["MetricExpr"] = check_expr(expr)
 
-        if args.cpu == "BDW-DE":
-            if ["MetricName"] == "Page_Walks_Utilization":
+        if args.extramodel == "BDW-DE":
+            if j["MetricName"] == "Page_Walks_Utilization":
                 j["MetricExpr"] = ("( cpu@ITLB_MISSES.WALK_DURATION\\,cmask\\=1@ + "
                            "cpu@DTLB_LOAD_MISSES.WALK_DURATION\\,cmask\\=1@ + "
                            "cpu@DTLB_STORE_MISSES.WALK_DURATION\\,cmask\\=1@ + "
@@ -475,7 +490,7 @@ for i in info:
                            "DTLB_LOAD_MISSES.WALK_COMPLETED + "
                            "ITLB_MISSES.WALK_COMPLETED ) ) / "
                            "CPU_CLK_UNHALTED.THREAD")
-            if ["MetricName"] == "Page_Walks_Utilization_SMT":
+            if j["MetricName"] == "Page_Walks_Utilization_SMT":
                 j["MetricExpr"] = ("( cpu@ITLB_MISSES.WALK_DURATION\\,cmask\\=1@ + "
                            "cpu@DTLB_LOAD_MISSES.WALK_DURATION\\,cmask\\=1@ + "
                            "cpu@DTLB_STORE_MISSES.WALK_DURATION\\,cmask\\=1@ + "
