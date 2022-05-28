@@ -229,6 +229,7 @@ def fixup(form, ebs_mode):
     form = form.replace("\b1==1\b", "1")
     form = form.replace("#Memory == 1", "1" if args.memory else "0")
 
+    form = re.sub(r"1e12", "1000000000000", form)
     form = re.sub(r":percore", "", form)
     form = re.sub(r":perf_metrics", "", form)
     pmu_prefix = 'cpu'
