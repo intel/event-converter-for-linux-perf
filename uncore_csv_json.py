@@ -79,12 +79,13 @@ def update(j):
     unit_remap = {
 	"IMC": "iMC",
 	"KTI LL": "UPI",
+        "NCU": "CLOCK",
     }
     if j["Unit"] in unit_remap:
         j["Unit"] = unit_remap[j["Unit"]]
     j["Topic"] = gen_topic(j["Unit"])
     j["PerPkg"] = "1"
-    if "Counter" in j and j["Counter"] == "FIXED":
+    if "Counter" in j and j["Counter"] in ("FIXED","Fixed"):
         j["EventCode"] = "0xff"
         j["UMask"] = "0x00"
     for k in list(j.keys()):
