@@ -26,7 +26,6 @@ core_out = json_to_perf_json.json_to_perf_json(args.corejson, "tmp-core", "cpu_c
 inter = list(set(atom_out).intersection(set(core_out)))
 diff1 = list(set(core_out).difference(set(atom_out)))
 diff2 = list(set(atom_out).difference(set(core_out)))
-
 def combine_jsons(atom_path, core_path, name, out_path):
     jn = []
 
@@ -63,5 +62,5 @@ for s in diff1:
     combine_jsons('', core_path, s, args.outdir)
 
 for s in diff2:
-    atom_path = "./tmp-core/" + s
+    atom_path = "./tmp-atom/" + s
     combine_jsons(atom_path, '', s, args.outdir)
