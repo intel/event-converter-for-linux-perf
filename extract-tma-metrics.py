@@ -247,7 +247,8 @@ def cstate_json(cpu):
 
 def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                         cstate: bool, extramodel: str, unit: str,
-                        expr_events: str, memory: bool, verbose: bool):
+                        expr_events: str, memory: bool, verbose: bool,
+                        outfile: TextIO):
     csvf = csv.reader(csvfile)
 
     info = []
@@ -597,13 +598,16 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
 
     jo = jo + je
 
-    print(json.dumps(jo, sort_keys=True, indent=4, separators=(',', ': ')))
+    outfile.write(
+        json.dumps(jo, sort_keys=True, indent=4, separators=(',', ': ')))
+    outfile.write('\n')
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('cpu')
     ap.add_argument('csvfile', type=argparse.FileType('r'))
+    ap.add_argument('--output', type=argparse.FileType('w'), default=sys.stdout)
     ap.add_argument('--verbose', action='store_true')
     ap.add_argument('--memory', action='store_true')
     ap.add_argument('--cstate', action='store_true')
@@ -615,7 +619,7 @@ def main():
 
     extract_tma_metrics(args.csvfile, args.cpu, args.extrajson, args.cstate,
                         args.extramodel, args.unit, args.expr_events,
-                        args.memory, args.verbose)
+                        args.memory, args.verbose, args.output)
 
 
 if __name__ == '__main__':
