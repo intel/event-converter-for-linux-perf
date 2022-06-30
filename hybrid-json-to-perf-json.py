@@ -8,59 +8,68 @@ import json
 import argparse
 import sys
 import importlib
+from typing import TextIO
 json_to_perf_json = importlib.import_module("json-to-perf-json")
 
-ap = argparse.ArgumentParser()
-ap.add_argument('atomjson', type=argparse.FileType('r'), help="Input atom json file")
-ap.add_argument('corejson', type=argparse.FileType('r'), help="Input core json file")
-ap.add_argument('--outdir', default='.')
-args = ap.parse_args()
+def hybrid_json_to_perf_json(atomjson: TextIO, corejson: TextIO, outdir: str):
+    def combine_jsons(atom_path, core_path, name, out_path):
+        jn = []
 
-os.system('rm -rf tmp-atom tmp-core')
-os.system('mkdir -p tmp-atom')
-os.system('mkdir -p tmp-core')
+        if len(atom_path) > 0:
+            f = open(atom_path, 'r')
+            ja = json.load(f)
+            if isinstance(ja, dict) and ja["Header"]:
+                ja = ja["Events"]
+            for l in ja:
+                jn.append(l)
+            f.close()
 
-atom_out = json_to_perf_json.json_to_perf_json(args.atomjson, "tmp-atom", "cpu_atom")
-core_out = json_to_perf_json.json_to_perf_json(args.corejson, "tmp-core", "cpu_core")
+        if len(core_path) > 0:
+            f = open(core_path, 'r')
+            jc = json.load(f)
+            if isinstance(jc, dict) and jc["Header"]:
+                jc = jc["Events"]
+            for l in jc:
+                jn.append(l)
+            f.close()
 
-inter = list(set(atom_out).intersection(set(core_out)))
-diff1 = list(set(core_out).difference(set(atom_out)))
-diff2 = list(set(atom_out).difference(set(core_out)))
-def combine_jsons(atom_path, core_path, name, out_path):
-    jn = []
+        ofile = open("%s/%s" % (out_path, name), "w")
+        json.dump(jn, ofile, sort_keys=True, indent=4, separators=(',', ': '))
+        ofile.write("\n")
+        ofile.close()
 
-    if len(atom_path) > 0:
-        f = open(atom_path, 'r')
-        ja = json.load(f)
-        if isinstance(ja, dict) and ja["Header"]:
-            ja = ja["Events"]
-        for l in ja:
-            jn.append(l)
-        f.close()
+    os.system('rm -rf tmp-atom tmp-core')
+    os.system('mkdir -p tmp-atom')
+    os.system('mkdir -p tmp-core')
 
-    if len(core_path) > 0:
-        f = open(core_path, 'r')
-        jc = json.load(f)
-        if isinstance(jc, dict) and jc["Header"]:
-            jc = jc["Events"]
-        for l in jc:
-            jn.append(l)
-        f.close()
+    atom_out = json_to_perf_json.json_to_perf_json(atomjson, "tmp-atom", "cpu_atom")
+    core_out = json_to_perf_json.json_to_perf_json(corejson, "tmp-core", "cpu_core")
 
-    ofile = open("%s/%s" % (out_path, name), "w")
-    json.dump(jn, ofile, sort_keys=True, indent=4, separators=(',', ': '))
-    ofile.write("\n")
-    ofile.close()
+    inter = list(set(atom_out).intersection(set(core_out)))
+    diff1 = list(set(core_out).difference(set(atom_out)))
+    diff2 = list(set(atom_out).difference(set(core_out)))
 
-for s in inter:
-    atom_path = "./tmp-atom/" + s
-    core_path = "./tmp-core/" + s
-    combine_jsons(atom_path, core_path, s, args.outdir)
+    for s in inter:
+        atom_path = "./tmp-atom/" + s
+        core_path = "./tmp-core/" + s
+        combine_jsons(atom_path, core_path, s,outdir)
 
-for s in diff1:
-    core_path = "./tmp-core/" + s
-    combine_jsons('', core_path, s, args.outdir)
+    for s in diff1:
+        core_path = "./tmp-core/" + s
+        combine_jsons('', core_path, s, outdir)
 
-for s in diff2:
-    atom_path = "./tmp-atom/" + s
-    combine_jsons(atom_path, '', s, args.outdir)
+    for s in diff2:
+        atom_path = "./tmp-atom/" + s
+        combine_jsons(atom_path, '', s, outdir)
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('atomjson', type=argparse.FileType('r'), help="Input atom json file")
+    ap.add_argument('corejson', type=argparse.FileType('r'), help="Input core json file")
+    ap.add_argument('--outdir', default='.')
+    args = ap.parse_args()
+
+    hybrid_json_to_perf_json(args.atomjson, args.corejson, args.outdir)
+
+if __name__ == '__main__':
+    main()
