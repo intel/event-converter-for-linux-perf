@@ -249,6 +249,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                         cstate: bool, extramodel: str, unit: str,
                         expr_events: str, memory: bool, verbose: bool,
                         outfile: TextIO):
+    verboseprint = print if verbose else lambda *a, **k: None
     csvf = csv.reader(csvfile)
 
     info = []
@@ -301,7 +302,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             if form == '#NA':
                 continue
             aux[field('Level1')] = form
-            print('Adding aux', field('Level1'), form, file=sys.stderr)
+            verboseprint('Adding aux', field('Level1'), form, file=sys.stderr)
 
     jo = []
     je = []
@@ -312,17 +313,16 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
 
     for i in info:
         if i[0] in ignore:
-            print('Skipping', i[0], file=sys.stderr)
+            verboseprint('Skipping', i[0], file=sys.stderr)
             continue
 
         form = i[1]
         if form is None:
-            print('no formula for', i[0], file=sys.stderr)
+            verboseprint('no formula for', i[0], file=sys.stderr)
             continue
         if form == '#NA' or form == 'N/A':
             continue
-        if verbose:
-            print(i[0], 'orig form', form, file=sys.stderr)
+        verboseprint(i[0], 'orig form', form, file=sys.stderr)
 
         if i[3] == '':
             if i[0] in groups:
@@ -489,7 +489,8 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                                   lambda m: resolve_info(m.group(0)), form)
                 badevent(form)
             except BadRef as e:
-                print('Skipping ' + i[0] + ' due to ' + e.name, file=sys.stderr)
+                verboseprint(
+                    'Skipping ' + i[0] + ' due to ' + e.name, file=sys.stderr)
                 return ''
 
             form = fixup(form, ebs_mode)
@@ -507,7 +508,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 return
             if 'Mispredicts_Resteers' in form:
                 return
-            print(name, form, file=sys.stderr)
+            verboseprint(name, form, file=sys.stderr)
 
             if (locate != ''):
                 desc = desc + ', Sample with: ' + locate
