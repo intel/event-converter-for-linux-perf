@@ -149,6 +149,13 @@ cstates = [
     (['GLM', 'SNR'], [1, 3, 6], [2, 3, 6, 10]),
 ]
 
+def find_tma_cpu(shortname):
+    if shortname == 'BDW-DE':
+        return 'BDX'
+    for key in ratio_column.keys():
+        if shortname in key:
+            return key
+    return None
 
 def check_expr(expr):
     if expr.count('(') != expr.count(')'):
