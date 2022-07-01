@@ -202,7 +202,7 @@ do
       ./perf-uncore-events-${short,,}.csv \
       ${DATA_PATH}/"$short"/*_uncore_[vV]*[^a-z].json \
       "$outdir" \
-      $(ls ${DATA_PATH}/"$short"/*_uncore_v*_expermental.json)
+      $(ls ${DATA_PATH}/"$short"/*_uncore_v*_experimental.json)
   fi
 done
 
