@@ -164,6 +164,7 @@ declare -A TMA_MODELS=(
   ["SKL"]="SKL/KBL"
   ["SKX"]="SKX"
   ["SNB"]="SNB"
+  ["SPR"]="SPR"
 )
 
 declare -A HYBRID_TMA_MODELS_CORE=(
