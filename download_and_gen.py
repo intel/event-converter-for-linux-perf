@@ -80,13 +80,12 @@ class Model:
         tma_cpu = extract_tma_metrics.find_tma_cpu(self.shortname)
         if not tma_cpu:
             return
+        metrics_file = f'{outdir}/{self.shortname.replace("-","").lower()}-metrics.json'
         with urllib.request.urlopen(self.files['tma metrics']) as tma_metrics:
             tma_metrics_lines = [
                 l.decode('utf-8') for l in tma_metrics.readlines()
             ]
-            outfile = open(
-                f'{outdir}/{self.shortname.replace("-","").lower()}-metrics.json',
-                'w')
+            outfile = open(metrics_file, 'w')
             if 'atom' in self.files:
                 core_json = io.StringIO()
                 extract_tma_metrics.extract_tma_metrics(
@@ -141,6 +140,85 @@ class Model:
                     verbose=False,
                     outfile=outfile)
 
+        # Additional metrics
+        broken_extra_metrics = {
+            'BDX': [
+                # Missing #SYSTEM_TSC_FREQ
+                'cpu_operating_frequency',
+            ],
+            'CLX': [
+                # Missing #SYSTEM_TSC_FREQ
+                'cpu_operating_frequency',
+                # Missing UNC_IIO_PAYLOAD_BYTES_IN.MEM_READ.PART1
+                'io_bandwidth_read',
+                # Missing UNC_IIO_PAYLOAD_BYTES_IN.MEM_WRITE.PART1
+                'io_bandwidth_write',
+                # Missing cha/unc_cha_tor_occupancy.ia_miss/
+                'llc_data_read_demand_plus_prefetch_miss_latency',
+                'llc_data_read_demand_plus_prefetch_miss_latency_for_local_requests',
+                'llc_data_read_demand_plus_prefetch_miss_latency_for_remote_requests',
+            ],
+            'ICX': [
+                # Missing #SYSTEM_TSC_FREQ
+                'cpu_operating_frequency',
+                # Broken event EXE_ACTIVITY.3_PORTS_UTIL:u0x80
+                'tma_ports_utilization_percent',
+                # Syntax error
+                'tma_backend_bound_percent',
+                'tma_bad_speculation_percent',
+                'tma_branch_mispredicts_percent',
+                'tma_core_bound_percent',
+                'tma_machine_clears_percent',
+                'tma_memory_bound_percent',
+            ],
+            'SKX': [
+                # Missing #SYSTEM_TSC_FREQ
+                'cpu_operating_frequency',
+                # Missing UNC_IIO_PAYLOAD_BYTES_IN.MEM_READ.PART1
+                'io_bandwidth_read',
+                # Missing UNC_IIO_PAYLOAD_BYTES_IN.MEM_WRITE.PART1
+                'io_bandwidth_write',
+                # Missing cha/unc_cha_tor_occupancy.ia_miss/
+                'llc_data_read_demand_plus_prefetch_miss_latency',
+                'llc_data_read_demand_plus_prefetch_miss_latency_for_local_requests',
+                'llc_data_read_demand_plus_prefetch_miss_latency_for_remote_requests',
+            ],
+            'SPR': [
+                # Missing #SYSTEM_TSC_FREQ
+                'cpu_operating_frequency',
+                # Broken event AMX_OPS_RETIRED.BF16:c1
+                'tma_fp_arith_percent',
+                'tma_other_light_ops_percent',
+                # Broken event EXE_ACTIVITY.3_PORTS_UTIL:u0x80 and
+                # EXE_ACTIVITY.2_PORTS_UTIL:u0xc
+                'tma_ports_utilization_percent',
+            ],
+        }
+        if 'extra metrics' in self.files:
+            with urllib.request.urlopen(
+                    self.files['extra metrics']) as extra_metrics_json:
+                metrics_json = open(metrics_file, 'r')
+                metrics = json.load(metrics_json)
+                extra_metrics = json.load(extra_metrics_json)
+                for extra_metric in extra_metrics:
+                    if self.shortname in broken_extra_metrics and extra_metric[
+                            'MetricName'].lower() in broken_extra_metrics[
+                                self.shortname]:
+                        continue
+                    metrics = [
+                        x for x in metrics if x['MetricName'].lower() !=
+                        extra_metric['MetricName'].lower()
+                    ]
+                    metrics.append(extra_metric)
+                outfile = open(metrics_file, 'w')
+                outfile.write(
+                    json.dumps(
+                        metrics,
+                        sort_keys=True,
+                        indent=4,
+                        separators=(',', ': ')))
+                outfile.write('\n')
+
     def mapfile_line(self):
         if len(self.models) == 1:
             ret = min(self.models)
@@ -171,7 +249,7 @@ class Model:
 class Mapfile:
     archs: Sequence[Model]
 
-    def __init__(self, base_url: str):
+    def __init__(self, base_url: str, metrics_url: str):
         self.archs = []
         longnames: Dict[str, str] = {}
         models: DefaultDict[str, Set[str]] = collections.defaultdict(set)
@@ -233,6 +311,13 @@ class Mapfile:
             if 'atom' in files[shortname]:
                 files[shortname][
                     'e-core tma metrics'] = base_url + '/E-core_TMA_Metrics.csv'
+            cpu_metrics_url = f'{metrics_url}/{shortname}/metrics/perf/{shortname.lower()}_metric_perf.json'
+            try:
+                urllib.request.urlopen(cpu_metrics_url)
+                files[shortname]['extra metrics'] = cpu_metrics_url
+            except:
+                pass
+
             self.archs += [
                 Model(shortname, longname, versions[shortname],
                       models[shortname], files[shortname])
@@ -255,19 +340,23 @@ class Mapfile:
             gen_mapfile.write(model.mapfile_line() + '\n')
 
 
-def generate_all_event_json(url: str, outdir: str):
-    mapfile = Mapfile(url)
+def generate_all_event_json(url: str, metrics_url: str, outdir: str):
+    mapfile = Mapfile(url, metrics_url)
 
+    os.system(f'mkdir -p {outdir}')
     mapfile.to_perf_json(outdir)
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--url', default='https://download.01.org/perfmon')
-    ap.add_argument('--outdir', default='perf2')
+    ap.add_argument(
+        '--metrics-url',
+        default='https://raw.githubusercontent.com/intel/perfmon-metrics/main')
+    ap.add_argument('--outdir', default='perf')
     args = ap.parse_args()
 
-    generate_all_event_json(args.url, args.outdir)
+    generate_all_event_json(args.url, args.metrics_url, args.outdir)
 
 
 if __name__ == '__main__':
