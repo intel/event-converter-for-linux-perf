@@ -68,14 +68,16 @@ class Model:
                             jsonfile=uncore_json,
                             extrajsonfile=experimental_json,
                             targetdir=outdir,
-                            all_events=True)
+                            all_events=True,
+                            verbose=False)
                 else:
                     uncore_csv_json.uncore_csv_json(
                         csvfile=uncore_csv,
                         jsonfile=uncore_json,
                         extrajsonfile=None,
                         targetdir=outdir,
-                        all_events=True)
+                        all_events=True,
+                        verbose=False)
         # TMA metrics.
         tma_cpu = extract_tma_metrics.find_tma_cpu(self.shortname)
         if not tma_cpu:

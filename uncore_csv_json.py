@@ -84,7 +84,8 @@ def update(j):
             del j[k]
     return j
 
-def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, targetdir: str, all_events: bool):
+def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, targetdir: str, all_events: bool, verbose: bool):
+    verboseprint = print if verbose else lambda *a, **k: None
     events = read_events(jsonfile)
     events2 = read_events(extrajsonfile) if extrajsonfile else None
 
@@ -210,7 +211,7 @@ def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, ta
             j["EventName"] = name
             j["BriefDescription"] = BriefDescription1
             jl.append(copy.deepcopy(j))
-            print("Both event", name, "and its new name", newname, "are supported", file=sys.stderr)
+            verboseprint("Both event", name, "and its new name", newname, "are supported", file=sys.stderr)
 
     if all_events:
         def skip(j):
@@ -232,9 +233,9 @@ def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, ta
         if "PublicDescription" in j:
             desc = j["PublicDescription"]
         if not desc:
-            print(j["EventName"], "has no description", file=sys.stderr)
+            verboseprint(j["EventName"], "has no description", file=sys.stderr)
         if desc and len(desc) > 900:
-            print(j["EventName"], "has too long description for git (%d)" % len(desc), file=sys.stderr)
+            verboseprint(j["EventName"], "has too long description for git (%d)" % len(desc), file=sys.stderr)
 
     #print(jl)
     remove_l = []
@@ -257,7 +258,7 @@ def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, ta
         events = list(iter)
         for j in events:
             del j["Topic"]
-        print("generating", topic)
+        verboseprint("generating", topic)
         of = open(targetdir + "/" + topic.lower() + ".json", "w")
         js = json.dumps(events, sort_keys=True, indent=4, separators=(',', ': '))
         print(js, file=of)
@@ -270,9 +271,10 @@ def main():
     ap.add_argument('targetdir', help='Output directory')
     ap.add_argument('extrajsonfile', nargs='?', type=argparse.FileType('r'), help='Extra json file to look up events (e.g. experimential)')
     ap.add_argument('--all', action='store_true', help='Include all events from jsonfile, not just CSV events')
+    ap.add_argument('--verbose', action='store_true')
     args = ap.parse_args()
 
-    uncore_csv_json(args.csvfile, args.jsonfile, args.extrajsonfile, args.targetdir, args.all)
+    uncore_csv_json(args.csvfile, args.jsonfile, args.extrajsonfile, args.targetdir, args.all, args.verbose)
 
 if __name__ == '__main__':
     main()
