@@ -257,6 +257,7 @@ class Mapfile:
         models: DefaultDict[str, Set[str]] = collections.defaultdict(set)
         files: Dict[str, Dict[str, str]] = collections.defaultdict(dict)
         versions: Dict[str, str] = {}
+        print(f'Analyzing {base_url}/mapfile.csv')
         with urllib.request.urlopen(base_url + '/mapfile.csv') as mapfile_csv:
             mapfile_csv_lines = [
                 l.decode('utf-8') for l in mapfile_csv.readlines()
@@ -334,13 +335,40 @@ class Mapfile:
 
     def to_perf_json(self, outdir: str):
         gen_mapfile = open(f'{outdir}/mapfile.csv', 'w', encoding='ascii')
-        for model in self.archs:  #[x for x in self.archs if x.shortname == 'TGL']:
+        for model in self.archs:
             print(f'Generating json for {model.longname}')
             modeldir = outdir + '/' + model.longname
             os.system(f'mkdir -p {modeldir}')
             model.to_perf_json(modeldir)
             gen_mapfile.write(model.mapfile_line() + '\n')
 
+    def download(self, base_url: str, metrics_url: str, outdir: str):
+        os.system(f'mkdir -p {outdir}/01')
+        with open(f'{outdir}/01/mapfile.csv', 'w', encoding='ascii') as out_mapfile:
+            with urllib.request.urlopen(base_url + '/mapfile.csv') as in_mapfile:
+                for l in in_mapfile.readlines():
+                    out_mapfile.write(l.decode('ascii'))
+        files = set()
+        for model in self.archs:
+            for short, url in model.files.items():
+                files.add(url)
+        for url in sorted(files):
+            if base_url in url:
+                out_path = outdir + '/01' + url.removeprefix(base_url)
+            else:
+                out_path = outdir + '/github' + url.removeprefix(metrics_url)
+            print(f'Downloading:\n\t{url} to\n\t{out_path}')
+            os.system(f'mkdir -p {os.path.dirname(out_path)}')
+            with open(out_path, 'w', encoding='ascii') as out_json:
+                with urllib.request.urlopen(url) as in_json:
+                    for l in in_json.readlines():
+                        ascii_line = re.sub('\xae', '(R)', l.decode('utf-8'))
+                        ascii_line = re.sub('\u2122', '(TM)', ascii_line)
+                        ascii_line = re.sub('\uFEFF', '', ascii_line)
+                        out_json.write(ascii_line)
+        print('Now run with: download_and_gen.py ' +
+              f'--url=file://{os.path.abspath(outdir)}/01 ' +
+              f'--metrics-url=file://{os.path.abspath(outdir)}/github')
 
 def generate_all_event_json(url: str, metrics_url: str, outdir: str):
     mapfile = Mapfile(url, metrics_url)
@@ -348,6 +376,11 @@ def generate_all_event_json(url: str, metrics_url: str, outdir: str):
     os.system(f'mkdir -p {outdir}')
     mapfile.to_perf_json(outdir)
 
+def hermetic_download(url: str, metrics_url: str, outdir: str):
+    mapfile = Mapfile(url, metrics_url)
+
+    os.system(f'mkdir -p {outdir}')
+    mapfile.download(url, metrics_url, outdir)
 
 def main():
     ap = argparse.ArgumentParser()
@@ -356,9 +389,15 @@ def main():
         '--metrics-url',
         default='https://raw.githubusercontent.com/intel/perfmon-metrics/main')
     ap.add_argument('--outdir', default='perf')
+    ap.add_argument('--hermetic-download', action='store_true',
+                    help="""Download necessary files rather than generating perf json.
+The downloaded files can later be passed to the --url/--metrics-url options""")
     args = ap.parse_args()
 
-    generate_all_event_json(args.url, args.metrics_url, args.outdir)
+    if args.hermetic_download:
+        hermetic_download(args.url, args.metrics_url, args.outdir)
+    else:
+        generate_all_event_json(args.url, args.metrics_url, args.outdir)
 
 
 if __name__ == '__main__':
