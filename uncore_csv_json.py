@@ -259,7 +259,7 @@ def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, ta
         for j in events:
             del j["Topic"]
         verboseprint("generating", topic)
-        of = open(targetdir + "/" + topic.lower() + ".json", "w")
+        of = open(targetdir + "/" + topic.lower() + ".json", "w", encoding='ascii')
         js = json.dumps(events, sort_keys=True, indent=4, separators=(',', ': '))
         print(js, file=of)
         of.close()

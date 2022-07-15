@@ -87,7 +87,7 @@ class Model:
             tma_metrics_lines = [
                 l.decode('utf-8') for l in tma_metrics.readlines()
             ]
-            outfile = open(metrics_file, 'w')
+            outfile = open(metrics_file, 'w', encoding='ascii')
             if 'atom' in self.files:
                 core_json = io.StringIO()
                 extract_tma_metrics.extract_tma_metrics(
@@ -212,7 +212,7 @@ class Model:
                         extra_metric['MetricName'].lower()
                     ]
                     metrics.append(extra_metric)
-                outfile = open(metrics_file, 'w')
+                outfile = open(metrics_file, 'w', encoding='ascii')
                 outfile.write(
                     json.dumps(
                         metrics,
@@ -333,7 +333,7 @@ class Mapfile:
         return result
 
     def to_perf_json(self, outdir: str):
-        gen_mapfile = open(f'{outdir}/mapfile.csv', 'w')
+        gen_mapfile = open(f'{outdir}/mapfile.csv', 'w', encoding='ascii')
         for model in self.archs:  #[x for x in self.archs if x.shortname == 'TGL']:
             print(f'Generating json for {model.longname}')
             modeldir = outdir + '/' + model.longname

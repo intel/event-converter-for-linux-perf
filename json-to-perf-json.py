@@ -72,7 +72,7 @@ def json_to_perf_json(in_file :TextIO, outdir :str, unit :str):
         topic = topic.replace(" ", "-")
         fn = topic.lower() + ".json"
         ofiles.append(fn)
-        ofile = open(f'{outdir}/{fn}', "w")
+        ofile = open(f'{outdir}/{fn}', "w", encoding='ascii')
         json.dump(sorted(list(j2), key=lambda x: x["EventName"]), ofile,
                   sort_keys=True, indent=4, separators=(',', ': '))
         ofile.write("\n")
