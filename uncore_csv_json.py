@@ -214,10 +214,7 @@ def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, ta
             verboseprint("Both event", name, "and its new name", newname, "are supported", file=sys.stderr)
 
     if all_events:
-        def skip(j):
-            return "Deprecated" in j and j["Deprecated"] == "1"
-
-        jl += [update(events[x]) for x in sorted(events.keys()) if not skip(events[x]) and not x in added]
+        jl += [update(events[x]) for x in sorted(events.keys()) if x not in added]
 
     for j in jl:
         if "UMask" in j.keys() and "UMaskExt" in j.keys():
