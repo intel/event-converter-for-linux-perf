@@ -204,12 +204,11 @@ def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, ta
             continue
         j = update(j)
         added.add(j["EventName"])
-        if newname and newname.lower() != name.lower():
-            added.add(name)
         jl.append(copy.deepcopy(j))
-        if newname:
+        if newname and  newname.lower() != name.lower() and name not in added:
             j["EventName"] = name
             j["BriefDescription"] = BriefDescription1
+            added.add(name)
             jl.append(copy.deepcopy(j))
             verboseprint("Both event", name, "and its new name", newname, "are supported", file=sys.stderr)
 
