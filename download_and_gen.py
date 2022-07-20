@@ -10,7 +10,7 @@ import uncore_csv_json
 import urllib.request
 import importlib
 from itertools import takewhile
-from typing import (Dict, DefaultDict, Sequence, Set)
+from typing import (Any, Dict, DefaultDict, Sequence, Set)
 
 json_to_perf_json = importlib.import_module('json-to-perf-json')
 hybrid_json_to_perf_json = importlib.import_module('hybrid-json-to-perf-json')
@@ -32,7 +32,7 @@ class Model:
         self.models = sorted(models)
         self.files = files
 
-    def __lt__(self, other):
+    def __lt__(self, other: Any) -> bool:
         # Sort by model number: min(self.models) < min(other.models)
         return self.longname < other.longname
 
@@ -221,7 +221,7 @@ class Model:
                         separators=(',', ': ')))
                 outfile.write('\n')
 
-    def mapfile_line(self):
+    def mapfile_line(self) -> str:
         if len(self.models) == 1:
             ret = min(self.models)
         else:
@@ -294,11 +294,11 @@ class Mapfile:
                     models['KNL'].add(family_model)
                     continue
 
-                if not shortname in longnames:
+                if shortname not in longnames:
                     longnames[shortname] = longname
                 else:
                     assert longnames[shortname] == longname
-                if not shortname in versions:
+                if shortname not in versions:
                     versions[shortname] = version
                 else:
                     assert versions[shortname] == version
