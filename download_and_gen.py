@@ -144,56 +144,15 @@ class Model:
 
         # Additional metrics
         broken_extra_metrics = {
-            'BDX': [
-                # Missing #SYSTEM_TSC_FREQ
-                'cpu_operating_frequency',
-            ],
-            'CLX': [
-                # Missing #SYSTEM_TSC_FREQ
-                'cpu_operating_frequency',
-                # Missing UNC_IIO_PAYLOAD_BYTES_IN.MEM_READ.PART1
-                'io_bandwidth_read',
-                # Missing UNC_IIO_PAYLOAD_BYTES_IN.MEM_WRITE.PART1
-                'io_bandwidth_write',
-                # Missing cha/unc_cha_tor_occupancy.ia_miss/
-                'llc_data_read_demand_plus_prefetch_miss_latency',
-                'llc_data_read_demand_plus_prefetch_miss_latency_for_local_requests',
-                'llc_data_read_demand_plus_prefetch_miss_latency_for_remote_requests',
-            ],
             'ICX': [
-                # Missing #SYSTEM_TSC_FREQ
-                'cpu_operating_frequency',
-                # Broken event EXE_ACTIVITY.3_PORTS_UTIL:u0x80
+                # Missing event EXE_ACTIVITY.EXE_BOUND_0_PORTS
                 'tma_ports_utilization_percent',
-                # Syntax error
-                'tma_backend_bound_percent',
-                'tma_bad_speculation_percent',
-                'tma_branch_mispredicts_percent',
-                'tma_core_bound_percent',
-                'tma_machine_clears_percent',
-                'tma_memory_bound_percent',
             ],
             'SKX': [
-                # Missing #SYSTEM_TSC_FREQ
-                'cpu_operating_frequency',
-                # Missing UNC_IIO_PAYLOAD_BYTES_IN.MEM_READ.PART1
-                'io_bandwidth_read',
-                # Missing UNC_IIO_PAYLOAD_BYTES_IN.MEM_WRITE.PART1
-                'io_bandwidth_write',
                 # Missing cha/unc_cha_tor_occupancy.ia_miss/
                 'llc_data_read_demand_plus_prefetch_miss_latency',
                 'llc_data_read_demand_plus_prefetch_miss_latency_for_local_requests',
                 'llc_data_read_demand_plus_prefetch_miss_latency_for_remote_requests',
-            ],
-            'SPR': [
-                # Missing #SYSTEM_TSC_FREQ
-                'cpu_operating_frequency',
-                # Broken event AMX_OPS_RETIRED.BF16:c1
-                'tma_fp_arith_percent',
-                'tma_other_light_ops_percent',
-                # Broken event EXE_ACTIVITY.3_PORTS_UTIL:u0x80 and
-                # EXE_ACTIVITY.2_PORTS_UTIL:u0xc
-                'tma_ports_utilization_percent',
             ],
         }
         if 'extra metrics' in self.files:
