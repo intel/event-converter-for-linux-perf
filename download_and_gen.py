@@ -40,7 +40,7 @@ class Model:
         return f'{self.shortname} / {self.longname}\n\tmodels={self.models}\n\t' + '\n\t'.join(
             [f'{type}_url = {url}' for (type, url) in self.files.items()])
 
-    def to_perf_json(self, outdir: str):
+    def to_perf_json(self, outdir: str, csvdir: str):
         # Core event files.
         if 'atom' in self.files:
             with urllib.request.urlopen(self.files['atom']) as atom_json:
@@ -53,7 +53,7 @@ class Model:
 
         # Uncore event files.
         if 'uncore' in self.files:
-            uncore_csv_file = f'perf-uncore-events-{self.shortname.lower()}.csv'
+            uncore_csv_file = f'{csvdir}/perf-uncore-events-{self.shortname.lower()}.csv'
             if os.path.exists(uncore_csv_file):
                 uncore_csv = open(uncore_csv_file, 'r')
             else:
@@ -333,13 +333,13 @@ class Mapfile:
             result += str(model) + '\n'
         return result
 
-    def to_perf_json(self, outdir: str):
+    def to_perf_json(self, outdir: str, csvdir: str):
         gen_mapfile = open(f'{outdir}/mapfile.csv', 'w', encoding='ascii')
         for model in self.archs:
             print(f'Generating json for {model.longname}')
             modeldir = outdir + '/' + model.longname
             os.system(f'mkdir -p {modeldir}')
-            model.to_perf_json(modeldir)
+            model.to_perf_json(modeldir, csvdir)
             gen_mapfile.write(model.mapfile_line() + '\n')
 
     def download(self, base_url: str, metrics_url: str, outdir: str):
@@ -370,11 +370,11 @@ class Mapfile:
               f'--url=file://{os.path.abspath(outdir)}/01 ' +
               f'--metrics-url=file://{os.path.abspath(outdir)}/github')
 
-def generate_all_event_json(url: str, metrics_url: str, outdir: str):
+def generate_all_event_json(url: str, metrics_url: str, outdir: str, csvdir: str):
     mapfile = Mapfile(url, metrics_url)
 
     os.system(f'mkdir -p {outdir}')
-    mapfile.to_perf_json(outdir)
+    mapfile.to_perf_json(outdir, csvdir)
 
 def hermetic_download(url: str, metrics_url: str, outdir: str):
     mapfile = Mapfile(url, metrics_url)
@@ -388,6 +388,7 @@ def main():
     ap.add_argument(
         '--metrics-url',
         default='https://raw.githubusercontent.com/intel/perfmon-metrics/main')
+    ap.add_argument('--csvdir', default='.', help='Path for uncore CSV files')
     ap.add_argument('--outdir', default='perf')
     ap.add_argument('--hermetic-download', action='store_true',
                     help="""Download necessary files rather than generating perf json.
@@ -397,7 +398,7 @@ The downloaded files can later be passed to the --url/--metrics-url options""")
     if args.hermetic_download:
         hermetic_download(args.url, args.metrics_url, args.outdir)
     else:
-        generate_all_event_json(args.url, args.metrics_url, args.outdir)
+        generate_all_event_json(args.url, args.metrics_url, args.outdir, args.csvdir)
 
 
 if __name__ == '__main__':
