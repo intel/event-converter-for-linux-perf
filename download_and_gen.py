@@ -144,6 +144,14 @@ class Model:
 
         # Additional metrics
         broken_extra_metrics = {
+            'HSX': [
+                # Missing event 'c'.
+                'uncore_frequency',
+                # Missing event 'e'.
+                'llc_data_read_demand_plus_prefetch_miss_latency',
+                'llc_data_read_demand_plus_prefetch_miss_latency_for_local_requests',
+                'llc_data_read_demand_plus_prefetch_miss_latency_for_remote_requests',
+            ],
             'ICX': [
                 # Missing event EXE_ACTIVITY.EXE_BOUND_0_PORTS
                 'tma_ports_utilization_percent',
