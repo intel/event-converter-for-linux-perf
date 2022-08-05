@@ -10,7 +10,7 @@ import uncore_csv_json
 import urllib.request
 import importlib
 from itertools import takewhile
-from typing import (Dict, DefaultDict, Sequence, Set)
+from typing import (Any, Dict, DefaultDict, Sequence, Set)
 
 json_to_perf_json = importlib.import_module('json-to-perf-json')
 hybrid_json_to_perf_json = importlib.import_module('hybrid-json-to-perf-json')
@@ -32,7 +32,7 @@ class Model:
         self.models = sorted(models)
         self.files = files
 
-    def __lt__(self, other):
+    def __lt__(self, other: Any) -> bool:
         # Sort by model number: min(self.models) < min(other.models)
         return self.longname < other.longname
 
@@ -40,7 +40,7 @@ class Model:
         return f'{self.shortname} / {self.longname}\n\tmodels={self.models}\n\t' + '\n\t'.join(
             [f'{type}_url = {url}' for (type, url) in self.files.items()])
 
-    def to_perf_json(self, outdir: str):
+    def to_perf_json(self, outdir: str, csvdir: str):
         # Core event files.
         if 'atom' in self.files:
             with urllib.request.urlopen(self.files['atom']) as atom_json:
@@ -53,7 +53,7 @@ class Model:
 
         # Uncore event files.
         if 'uncore' in self.files:
-            uncore_csv_file = f'perf-uncore-events-{self.shortname.lower()}.csv'
+            uncore_csv_file = f'{csvdir}/perf-uncore-events-{self.shortname.lower()}.csv'
             if os.path.exists(uncore_csv_file):
                 uncore_csv = open(uncore_csv_file, 'r')
             else:
@@ -144,56 +144,23 @@ class Model:
 
         # Additional metrics
         broken_extra_metrics = {
-            'BDX': [
-                # Missing #SYSTEM_TSC_FREQ
-                'cpu_operating_frequency',
-            ],
-            'CLX': [
-                # Missing #SYSTEM_TSC_FREQ
-                'cpu_operating_frequency',
-                # Missing UNC_IIO_PAYLOAD_BYTES_IN.MEM_READ.PART1
-                'io_bandwidth_read',
-                # Missing UNC_IIO_PAYLOAD_BYTES_IN.MEM_WRITE.PART1
-                'io_bandwidth_write',
-                # Missing cha/unc_cha_tor_occupancy.ia_miss/
+            'HSX': [
+                # Missing event 'c'.
+                'uncore_frequency',
+                # Missing event 'e'.
                 'llc_data_read_demand_plus_prefetch_miss_latency',
                 'llc_data_read_demand_plus_prefetch_miss_latency_for_local_requests',
                 'llc_data_read_demand_plus_prefetch_miss_latency_for_remote_requests',
             ],
             'ICX': [
-                # Missing #SYSTEM_TSC_FREQ
-                'cpu_operating_frequency',
-                # Broken event EXE_ACTIVITY.3_PORTS_UTIL:u0x80
+                # Missing event EXE_ACTIVITY.EXE_BOUND_0_PORTS
                 'tma_ports_utilization_percent',
-                # Syntax error
-                'tma_backend_bound_percent',
-                'tma_bad_speculation_percent',
-                'tma_branch_mispredicts_percent',
-                'tma_core_bound_percent',
-                'tma_machine_clears_percent',
-                'tma_memory_bound_percent',
             ],
             'SKX': [
-                # Missing #SYSTEM_TSC_FREQ
-                'cpu_operating_frequency',
-                # Missing UNC_IIO_PAYLOAD_BYTES_IN.MEM_READ.PART1
-                'io_bandwidth_read',
-                # Missing UNC_IIO_PAYLOAD_BYTES_IN.MEM_WRITE.PART1
-                'io_bandwidth_write',
                 # Missing cha/unc_cha_tor_occupancy.ia_miss/
                 'llc_data_read_demand_plus_prefetch_miss_latency',
                 'llc_data_read_demand_plus_prefetch_miss_latency_for_local_requests',
                 'llc_data_read_demand_plus_prefetch_miss_latency_for_remote_requests',
-            ],
-            'SPR': [
-                # Missing #SYSTEM_TSC_FREQ
-                'cpu_operating_frequency',
-                # Broken event AMX_OPS_RETIRED.BF16:c1
-                'tma_fp_arith_percent',
-                'tma_other_light_ops_percent',
-                # Broken event EXE_ACTIVITY.3_PORTS_UTIL:u0x80 and
-                # EXE_ACTIVITY.2_PORTS_UTIL:u0xc
-                'tma_ports_utilization_percent',
             ],
         }
         if 'extra metrics' in self.files:
@@ -221,7 +188,7 @@ class Model:
                         separators=(',', ': ')))
                 outfile.write('\n')
 
-    def mapfile_line(self):
+    def mapfile_line(self) -> str:
         if len(self.models) == 1:
             ret = min(self.models)
         else:
@@ -294,11 +261,11 @@ class Mapfile:
                     models['KNL'].add(family_model)
                     continue
 
-                if not shortname in longnames:
+                if shortname not in longnames:
                     longnames[shortname] = longname
                 else:
                     assert longnames[shortname] == longname
-                if not shortname in versions:
+                if shortname not in versions:
                     versions[shortname] = version
                 else:
                     assert versions[shortname] == version
@@ -333,13 +300,13 @@ class Mapfile:
             result += str(model) + '\n'
         return result
 
-    def to_perf_json(self, outdir: str):
+    def to_perf_json(self, outdir: str, csvdir: str):
         gen_mapfile = open(f'{outdir}/mapfile.csv', 'w', encoding='ascii')
         for model in self.archs:
             print(f'Generating json for {model.longname}')
             modeldir = outdir + '/' + model.longname
             os.system(f'mkdir -p {modeldir}')
-            model.to_perf_json(modeldir)
+            model.to_perf_json(modeldir, csvdir)
             gen_mapfile.write(model.mapfile_line() + '\n')
 
     def download(self, base_url: str, metrics_url: str, outdir: str):
@@ -370,11 +337,11 @@ class Mapfile:
               f'--url=file://{os.path.abspath(outdir)}/01 ' +
               f'--metrics-url=file://{os.path.abspath(outdir)}/github')
 
-def generate_all_event_json(url: str, metrics_url: str, outdir: str):
+def generate_all_event_json(url: str, metrics_url: str, outdir: str, csvdir: str):
     mapfile = Mapfile(url, metrics_url)
 
     os.system(f'mkdir -p {outdir}')
-    mapfile.to_perf_json(outdir)
+    mapfile.to_perf_json(outdir, csvdir)
 
 def hermetic_download(url: str, metrics_url: str, outdir: str):
     mapfile = Mapfile(url, metrics_url)
@@ -388,6 +355,7 @@ def main():
     ap.add_argument(
         '--metrics-url',
         default='https://raw.githubusercontent.com/intel/perfmon-metrics/main')
+    ap.add_argument('--csvdir', default='.', help='Path for uncore CSV files')
     ap.add_argument('--outdir', default='perf')
     ap.add_argument('--hermetic-download', action='store_true',
                     help="""Download necessary files rather than generating perf json.
@@ -397,7 +365,7 @@ The downloaded files can later be passed to the --url/--metrics-url options""")
     if args.hermetic_download:
         hermetic_download(args.url, args.metrics_url, args.outdir)
     else:
-        generate_all_event_json(args.url, args.metrics_url, args.outdir)
+        generate_all_event_json(args.url, args.metrics_url, args.outdir, args.csvdir)
 
 
 if __name__ == '__main__':

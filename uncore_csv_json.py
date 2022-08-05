@@ -213,10 +213,7 @@ def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, ta
             verboseprint("Both event", name, "and its new name", newname, "are supported", file=sys.stderr)
 
     if all_events:
-        def skip(j):
-            return "Deprecated" in j and j["Deprecated"] == "1"
-
-        jl += [update(events[x]) for x in sorted(events.keys()) if not skip(events[x]) and not x in added]
+        jl += [update(events[x]) for x in sorted(events.keys()) if x not in added]
 
     for j in jl:
         if "UMask" in j.keys() and "UMaskExt" in j.keys():
@@ -240,10 +237,34 @@ def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, ta
     remove_l = []
     for j in jl:
         if "Filter" in j.keys():
-            if j["Filter"].startswith('CHAFilter'):
+            # Case insensitive comparisons
+            filter = j["Filter"].lower()
+            # If filter starts with these then drop the event.
+            drop_event_filter_start = [
+                "ha_addrmatch",
+                "ha_opcodematch",
+                "irpfilter",
+            ]
+            if any(x for x in drop_event_filter_start if filter.startswith(x)):
                 remove_l.append(j)
-            if j["Filter"] == "fc, chnl" or j["Filter"].startswith('chnl'):
+                continue
+
+            # If filter starts with these then remove the filter.
+            remove_filter_start = [
+                "cbofilter",
+                "chafilter",
+                "pcufilter",
+                "qpimask",
+                "uboxfilter",
+                "fc, chnl",
+                "chnl",
+            ]
+            if any(x for x in remove_filter_start if filter.startswith(x)):
                 del j["Filter"]
+                continue
+
+            if '=' not in filter:
+                print(f'Broken looking filter \'{j["Filter"]}\' for {j["EventName"]}')
         if "BriefDescription" not in j.keys() and "PublicDescription" not in j.keys():
             remove_l.append(j)
 
