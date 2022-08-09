@@ -524,6 +524,12 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 'MetricName': name,
                 'MetricExpr': form,
             }
+
+            j1 = {
+                'MetricName': name,
+                'MetricExpr': form,
+            }
+
             if len(group) > 0:
                 j['MetricGroup'] = group
             if desc.count('.') > 1:
@@ -591,6 +597,17 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             else:
                 resolved.append(j['MetricName'])
             jo.append(j)
+
+            if j['MetricName'] == "Socket_CLKS":
+                j1['BriefDescription'] = "Uncore frequency per die [GHZ]"
+                j1['MetricExpr'] = "Socket_CLKS / #num_dies / duration_time / 1000000000"
+                j1['MetricGroup'] = "SoC"
+                j1['MetricName'] = "UNCORE_FREQ"
+                tmp_expr = j['MetricExpr']
+                expr = j1['MetricExpr']
+                expr = re.sub(r'Socket_CLKS',tmp_expr,expr)
+                j1['MetricExpr'] = check_expr(expr)
+                jo.append(j1)
 
         try:
             form = resolve_all(form, cpu, -1)
