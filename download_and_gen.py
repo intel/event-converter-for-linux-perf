@@ -231,8 +231,10 @@ class Mapfile:
             ]
             mapfile = csv.reader(mapfile_csv_lines)
             first_row = True
-            for (family_model, version, path, event_type, core_type,
-                 native_model_id, core_role_name) in mapfile:
+            for l in mapfile:
+                if len(l) == 6:
+                    l.append("")
+                family_model, version, path, event_type, core_type, native_model_id, core_role_name = l
                 if first_row:
                     assert family_model == 'Family-model'
                     assert version == 'Version'
