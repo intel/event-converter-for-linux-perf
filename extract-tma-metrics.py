@@ -173,10 +173,6 @@ def bracket(expr):
     return expr
 
 
-class SeenEBS(Exception):
-    pass
-
-
 def update_fix(x):
     x = x.replace(',', r'\,')
     x = x.replace('=', r'\=')
@@ -196,12 +192,6 @@ def badevent(e):
         raise BadRef('Base_Frequency')
     if '/Match=' in e:
         raise BadRef('/Match=')
-
-
-def smt_name(n):
-    if n.startswith('SMT'):
-        return n
-    return n + '_SMT'
 
 
 def add_sentence(s, n):
@@ -338,9 +328,9 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
         if i[3] == 'Topdown':
             i[3] = 'TopDown'
 
-        def resolve_all(form: str, cpu: str, ebs_mode: int = -1):
+        def resolve_all(form: str, cpu: str):
 
-            def fixup(form: str, ebs_mode: int):
+            def fixup(form: str):
                 form = check_expr(form)
                 if (cpu == 'SPR'):
                     for j, r in spr_event_fixes:
@@ -360,6 +350,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 form = form.replace('_PS', '')
                 form = form.replace('\b1==1\b', '1')
                 form = form.replace('#Memory == 1', '1' if memory else '0')
+                form = form.replace('#EBS_Mode', '#core_wide < 1')
 
                 form = re.sub(r'1e12', '1000000000000', form)
                 form = re.sub(r':percore', '', form)
@@ -411,10 +402,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 form = form.replace('##(', '(')  # XXX hack, shouldn't be needed
                 form = check_expr(form)
 
-                if '#EBS_Mode' in form:
-                    if ebs_mode == -1:
-                        raise SeenEBS()
-
                 for i in range(5):
                     #  if #Model in ['KBLR' 'CFL' 'CLX'] else
                     m = re.match(r'(.*) if #Model in \[(.*)\] else (.*)', form)
@@ -424,15 +411,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                             form = m.group(1)
                         else:
                             form = m.group(3)
-
-                    if ebs_mode >= 0:
-                        m = re.match(r'(.*) if #SMT_on else (.*)', form)
-                        if m:
-                            form = m.group(2) if ebs_mode == 0 else m.group(1)
-
-                    m = re.match(r'(.*) if #EBS_Mode else (.*)', form)
-                    if m:
-                        form = m.group(2) if ebs_mode == 0 else m.group(1)
 
                     m = re.match(r'(.*) if #PMM_App_Direct else (.*)', form)
                     if m:
@@ -452,6 +430,8 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 if v == '#Base_Frequency':
                     return v
                 if v == '#SMT_on':
+                    return v
+                if v == '#core_wide':
                     return v
                 if v == '#PERF_METRICS_MSR':
                     return v
@@ -474,7 +454,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 else:
                     child = aux[v]
                 badevent(child)
-                child = fixup(child, ebs_mode)
+                child = fixup(child)
                 #print(m.group(0), "=>", child, file=sys.stderr)
                 return bracket(child)
 
@@ -482,9 +462,9 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 if v in resolved:
                     return v
                 if v in infoname:
-                    return bracket(fixup(infoname[v], ebs_mode))
+                    return bracket(fixup(infoname[v]))
                 elif v in nodes:
-                    return bracket(fixup(nodes[v], ebs_mode))
+                    return bracket(fixup(nodes[v]))
                 return v
 
             try:
@@ -500,7 +480,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     'Skipping ' + i[0] + ' due to ' + e.name, file=sys.stderr)
                 return ''
 
-            form = fixup(form, ebs_mode)
+            form = fixup(form)
             return form
 
         def save_form(name, group, form, desc, locate, extra=''):
@@ -609,17 +589,8 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 j1['MetricExpr'] = check_expr(expr)
                 jo.append(j1)
 
-        try:
-            form = resolve_all(form, cpu, -1)
-            save_form(i[0], i[3], form, i[2], i[4])
-        except SeenEBS:
-            nf = resolve_all(form, cpu, 0)
-            save_form(i[0], i[3], nf, i[2], i[4])
-            nf = resolve_all(form, cpu, 1)
-            save_form(
-                smt_name(i[0]), smt_name(i[3]), nf, i[2], i[4],
-                'SMT version; use when SMT is enabled and measuring per logical CPU.'
-            )
+        form = resolve_all(form, cpu)
+        save_form(i[0], i[3], form, i[2], i[4])
 
     jo = jo + je
 
