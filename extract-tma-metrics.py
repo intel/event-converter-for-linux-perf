@@ -449,27 +449,11 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
 
                 return check_expr(form)
 
-            def resolve_aux(v: str):
-                if v == '#Base_Frequency':
+            def resolve_aux(v: str) -> str:
+                if any(v == i for i in ['#core_wide', '#Model', '#SMT_on']):
                     return v
-                if v == '#SMT_on':
-                    return v
-                if v == '#core_wide':
-                    return v
-                if v == '#PERF_METRICS_MSR':
-                    return v
-                if v == '#Retired_Slots':
-                    if 'ICL' in ratio_column[cpu]:
-                        #"Retiring * SLOTS"
-                        return '(' + infoname[
-                            'Retiring'] + ')' + ' * ' + '(' + infoname[
-                                'SLOTS'] + ')'
-                    else:
-                        return 'UOPS_RETIRED.RETIRE_SLOTS'
                 if v == '#DurationTimeInSeconds':
                     return 'duration_time'
-                if v == '#Model':
-                    return '#Model'
                 if v == '#NA':
                     return '0'
                 if v[1:] in nodes:
@@ -478,7 +462,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     child = aux[v]
                 badevent(child)
                 child = fixup(child)
-                #print(m.group(0), "=>", child, file=sys.stderr)
                 return bracket(child)
 
             def resolve_info(v: str):
