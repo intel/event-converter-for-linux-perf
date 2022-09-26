@@ -453,6 +453,10 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     return v
                 if v == '#DurationTimeInSeconds':
                     return 'duration_time'
+                if v == '#EBS_Mode':
+                    return '#core_wide < 1'
+                if v == '#Memory':
+                    return '1' if memory else '0'
                 if v == '#NA':
                     return '0'
                 if v[1:] in nodes:
