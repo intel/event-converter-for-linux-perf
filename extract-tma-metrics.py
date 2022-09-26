@@ -271,12 +271,15 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
     # references to cells in the CSV file have been replaced with
     # constants, literals or counter names.
     resolved : Set[str] = set()
+    # Map from the column heading to the list index of that column.
+    col_heading : Dict[str, int] = {}
     for l in csvf:
         if l[0] == 'Key':
-            f = {name: ind for name, ind in zip(l, range(len(l)))}
-            #print(f)
-        def field(x):
-            return l[f[x]]
+            col_heading = {name: ind for ind, name in enumerate(l)}
+
+        def field(x: str) -> str:
+            """Given the name of a column, return the value in the current line of it."""
+            return l[col_heading[x]]
 
         def find_form():
             if field(cpu):
