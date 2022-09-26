@@ -273,9 +273,14 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
     resolved : Set[str] = set()
     # Map from the column heading to the list index of that column.
     col_heading : Dict[str, int] = {}
+    # A list of topdown levels such as 'Level1'.
+    levels : Sequence[str] = []
     for l in csvf:
         if l[0] == 'Key':
-            col_heading = {name: ind for ind, name in enumerate(l)}
+            for ind, name in enumerate(l):
+                col_heading[name] = ind
+                if name.startswith('Level'):
+                    levels.append(name)
 
         def field(x: str) -> str:
             """Given the name of a column, return the value in the current line of it."""
@@ -291,14 +296,15 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
 
         if l[0].startswith('BE') or l[0].startswith('BAD') or l[0].startswith(
                 'RET') or l[0].startswith('FE'):
-            for j in ('Level1', 'Level2', 'Level3', 'Level4'):
+            for j in levels:
                 if field(j):
+                    level = int(j[-1])
                     form = find_form()
                     nodes[field(j)] = form
-                    if j == 'Level1':
+                    if level == 1:
                         info.append(PerfMetric(
                             field(j), form,
-                            field('Metric Description'), 'TopdownL1', ''
+                            field('Metric Description'), f'TopdownL{level}', ''
                         ))
                         infoname[field(j)] = form
 
