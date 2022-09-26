@@ -325,9 +325,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             if i[0] in groups:
                 i[3] = groups[i[0]]
 
-        if i[3] == 'Topdown':
-            i[3] = 'TopDown'
-
         def resolve_all(form: str, cpu: str):
 
             def fixup(form: str):
