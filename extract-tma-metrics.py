@@ -259,12 +259,18 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
 
     # All the metrics read from the CSV file.
     info : Sequence[PerfMetric] = []
-    aux = {}
-    infoname = {}
-    nodes = {}
-    l1nodes = []
-    resolved = []
-    counts = 0
+    # Mapping from an auxiliary name like #Pipeline_Width to the CPU
+    # specific formula used to compute it.
+    aux : Dict[str, str] = {}
+    # Mapping from a metric name to its CPU specific formula for
+    # Info.* and topdown metrics.
+    infoname : Dict[str, str] = {}
+    # Mapping from a topdown metric name to its CPU specific formula.
+    nodes : Dict[str, str] = {}
+    # The set of metric names that are resolved, that is all
+    # references to cells in the CSV file have been replaced with
+    # constants, literals or counter names.
+    resolved : Set[str] = set()
     for l in csvf:
         if l[0] == 'Key':
             f = {name: ind for name, ind in zip(l, range(len(l)))}
@@ -579,9 +585,9 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
 
             if expr_events:
                 if counts >= int(expr_events):
-                    resolved.append(j['MetricName'])
+                    resolved.add(j['MetricName'])
             else:
-                resolved.append(j['MetricName'])
+                resolved.add(j['MetricName'])
             jo.append(j)
 
             if j['MetricName'] == "Socket_CLKS":
