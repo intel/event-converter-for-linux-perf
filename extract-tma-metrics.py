@@ -270,6 +270,8 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
     col_heading : Dict[str, int] = {}
     # A list of topdown levels such as 'Level1'.
     levels : Sequence[str] = []
+    # A list of parents of the current topdown level.
+    parents : Sequence[str] = []
     for l in csvf:
         if l[0] == 'Key':
             for ind, name in enumerate(l):
@@ -296,16 +298,29 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
 
         if is_topdown_row(l[0]):
             for j in levels:
-                if field(j):
+                metric_name = field(j)
+                if metric_name:
                     level = int(j[-1])
+                    if level > len(parents):
+                        parents.append(metric_name)
+                    else:
+                        while level != len(parents):
+                            parents.pop()
+                        parents[-1] = field(j)
+                    verboseprint(f'{field(j)} => {str(parents)}')
                     form = find_form()
-                    nodes[field(j)] = form
-                    if level == 1:
-                        info.append(PerfMetric(
-                            field(j), form,
-                            field('Metric Description'), f'TopdownL{level}', ''
-                        ))
-                        infoname[field(j)] = form
+                    nodes[metric_name] = form
+                    groups = f'TopdownL{level}'
+                    csv_groups = field('Metric Group')
+                    if csv_groups:
+                        groups += f';{csv_groups}'
+                    if level > 1:
+                        groups += f';tma_{parents[-2].lower()}_group'
+                    info.append(PerfMetric(
+                        f'tma_{metric_name.lower()}', form,
+                        field('Metric Description'), groups, ''
+                    ))
+                    infoname[metric_name] = form
         elif l[0].startswith('Info'):
             info.append(PerfMetric(
                 field('Level1'),
