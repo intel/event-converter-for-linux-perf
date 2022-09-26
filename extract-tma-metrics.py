@@ -174,12 +174,6 @@ def bracket(expr):
     return expr
 
 
-def update_fix(x):
-    x = x.replace(',', r'\,')
-    x = x.replace('=', r'\=')
-    return x
-
-
 class BadRef(Exception):
 
     def __init__(self, v):
@@ -354,6 +348,11 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
         def resolve_all(form: str, cpu: str):
 
             def fixup(form: str):
+                def update_fix(x: str) -> str:
+                    x = x.replace(',', r'\,')
+                    x = x.replace('=', r'\=')
+                    return x
+
                 form = check_expr(form)
                 if (cpu == 'SPR'):
                     for j, r in spr_event_fixes:
