@@ -103,6 +103,17 @@ event_fixes = (
     ('UNC_C_CLOCKTICKS:one_unit', 'cbox_0@event=0x0@'),
 )
 
+topdown_event_fixes = (
+    ('PERF_METRICS.BACKEND_BOUND', 'topdown\-be\-bound'),
+    ('PERF_METRICS.BAD_SPECULATION', 'topdown\-bad\-spec'),
+    ('PERF_METRICS.BRANCH_MISPREDICTS', 'topdown\-br\-mispredict'),
+    ('PERF_METRICS.FETCH_LATENCY', 'topdown\-fetch\-lat'),
+    ('PERF_METRICS.FRONTEND_BOUND', 'topdown\-fe\-bound'),
+    ('PERF_METRICS.HEAVY_OPERATIONS', 'topdown\-heavy\-ops'),
+    ('PERF_METRICS.MEMORY_BOUND', 'topdown\-mem\-bound'),
+    ('PERF_METRICS.RETIRING', 'topdown\-retiring'),
+)
+
 # copied from toplev parser. unify?
 ratio_column = {
     "IVT": ("IVT", "IVB", "JKT/SNB-EP", "SNB"),
@@ -378,6 +389,8 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 else:
                     for j, r in event_fixes:
                         form = form.replace(j, update_fix(r))
+                for j, r in topdown_event_fixes:
+                    form = form.replace(j, r)
 
                 form = re.sub(r'\bTSC\b', 'msr@tsc@', form)
                 if (unit == 'cpu_atom'):
@@ -515,8 +528,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             if group.startswith(';'):
                 group = group[1:]
             group = group.strip()
-            if 'PERF_METRICS' in form:
-                return
             if 'Mispredicts_Resteers' in form:
                 return
             verboseprint(name, form, file=sys.stderr)
