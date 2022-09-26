@@ -296,8 +296,11 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     return check_expr(field(j))
             return None
 
-        if l[0].startswith('BE') or l[0].startswith('BAD') or l[0].startswith(
-                'RET') or l[0].startswith('FE'):
+        def is_topdown_row(key: str) -> bool:
+            topdown_keys = ['BE', 'BAD', 'RET', 'FE']
+            return any(key.startswith(td_key) for td_key in topdown_keys)
+
+        if is_topdown_row(l[0]):
             for j in levels:
                 if field(j):
                     level = int(j[-1])
@@ -309,8 +312,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                             field('Metric Description'), f'TopdownL{level}', ''
                         ))
                         infoname[field(j)] = form
-
-        if l[0].startswith('Info'):
+        elif l[0].startswith('Info'):
             info.append(PerfMetric(
                 field('Level1'),
                 find_form(),
@@ -319,13 +321,11 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 field('Locate-with')
             ))
             infoname[field('Level1')] = find_form()
-
-        if l[0].startswith('Aux'):
+        elif l[0].startswith('Aux'):
             form = find_form()
-            if form == '#NA':
-                continue
-            aux[field('Level1')] = form
-            verboseprint('Adding aux', field('Level1'), form, file=sys.stderr)
+            if form != '#NA':
+                aux[field('Level1')] = form
+                verboseprint('Adding aux', field('Level1'), form, file=sys.stderr)
 
     jo = []
     je = []
