@@ -33,7 +33,7 @@ import argparse
 import re
 import json
 import sys
-from typing import TextIO
+from typing import (Sequence, TextIO)
 
 # metrics redundant with perf or unusable
 ignore = set(['MUX', 'Power', 'Time'])
@@ -249,7 +249,16 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
     verboseprint = print if verbose else lambda *a, **k: None
     csvf = csv.reader(csvfile)
 
-    info = []
+    class PerfMetric:
+       def  __init__(self, name: str, form: str, desc: str, groups: str, locate: str):
+           self.name = name
+           self.form = form
+           self.desc = desc
+           self.groups = groups
+           self.locate = locate
+
+    # All the metrics read from the CSV file.
+    info : Sequence[PerfMetric] = []
     aux = {}
     infoname = {}
     nodes = {}
@@ -278,20 +287,20 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     form = find_form()
                     nodes[field(j)] = form
                     if j == 'Level1':
-                        info.append([
+                        info.append(PerfMetric(
                             field(j), form,
                             field('Metric Description'), 'TopdownL1', ''
-                        ])
+                        ))
                         infoname[field(j)] = form
 
         if l[0].startswith('Info'):
-            info.append([
+            info.append(PerfMetric(
                 field('Level1'),
                 find_form(),
                 field('Metric Description'),
                 field('Metric Group'),
                 field('Locate-with')
-            ])
+            ))
             infoname[field('Level1')] = find_form()
 
         if l[0].startswith('Aux'):
@@ -309,21 +318,21 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
         je.extend(cstate_json(cpu))
 
     for i in info:
-        if i[0] in ignore:
-            verboseprint('Skipping', i[0], file=sys.stderr)
+        if i.name in ignore:
+            verboseprint('Skipping', i.name, file=sys.stderr)
             continue
 
-        form = i[1]
+        form = i.form
         if form is None:
-            verboseprint('no formula for', i[0], file=sys.stderr)
+            verboseprint('no formula for', i.name, file=sys.stderr)
             continue
         if form == '#NA' or form == 'N/A':
             continue
-        verboseprint(i[0], 'orig form', form, file=sys.stderr)
+        verboseprint(i.name, 'orig form', form, file=sys.stderr)
 
-        if i[3] == '':
-            if i[0] in groups:
-                i[3] = groups[i[0]]
+        if i.groups == '':
+            if i.name in groups:
+                i.groups = groups[i.name]
 
         def resolve_all(form: str, cpu: str):
 
@@ -474,7 +483,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 badevent(form)
             except BadRef as e:
                 verboseprint(
-                    'Skipping ' + i[0] + ' due to ' + e.name, file=sys.stderr)
+                    'Skipping ' + i.name + ' due to ' + e.name, file=sys.stderr)
                 return ''
 
             form = fixup(form)
@@ -587,7 +596,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 jo.append(j1)
 
         form = resolve_all(form, cpu)
-        save_form(i[0], i[3], form, i[2], i[4])
+        save_form(i.name, i.groups, form, i.desc, i.locate)
 
     jo = jo + je
 
