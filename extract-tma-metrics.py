@@ -33,7 +33,7 @@ import argparse
 import re
 import json
 import sys
-from typing import (Sequence, TextIO)
+from typing import (Optional, Sequence, TextIO)
 
 # metrics redundant with perf or unusable
 ignore = set(['MUX', 'Power', 'Time'])
@@ -157,7 +157,8 @@ def find_tma_cpu(shortname):
             return key
     return None
 
-def check_expr(expr):
+def check_expr(expr : str) -> str:
+    """Basic sanity checks of the given formula."""
     if expr.count('(') != expr.count(')'):
         raise Exception('Mismatched parentheses', expr)
     return expr
@@ -286,7 +287,8 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             """Given the name of a column, return the value in the current line of it."""
             return l[col_heading[x]]
 
-        def find_form():
+        def find_form() -> Optional[str]:
+            """Find the formula for CPU in the current CSV line."""
             if field(cpu):
                 return check_expr(field(cpu))
             for j in ratio_column[cpu]:
