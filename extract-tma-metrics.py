@@ -540,8 +540,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             if group.startswith(';'):
                 group = group[1:]
             group = group.strip()
-            if 'Mispredicts_Resteers' in form:
-                return
             verboseprint(name, form, file=sys.stderr)
 
             if locate:
