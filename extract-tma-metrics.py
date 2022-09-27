@@ -403,6 +403,11 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 form = form.replace('#PMM_App_Direct', '1' if memory else '0')
                 form = re.sub(r':USER', ':u', form, re.IGNORECASE)
                 form = re.sub(r':SUP', ':k', form, re.IGNORECASE)
+                form = form.replace('(0 + ', '(')
+                form = form.replace(' + 0)', ')')
+                form = form.replace('+ 0 +', '+')
+                form = form.replace(', 0 +', ',')
+                form = form.replace('else 0 +', 'else')
 
                 pmu_prefix = 'cpu'
                 if unit == 'cpu_core':
