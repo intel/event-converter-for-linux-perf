@@ -415,6 +415,8 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 form = form.replace('\b1==1\b', '1')
                 form = form.replace('#Memory == 1', '1' if memory else '0')
                 form = form.replace('#EBS_Mode', '#core_wide < 1')
+                form = re.sub(r':USER', ':u', form, re.IGNORECASE)
+                form = re.sub(r':SUP', ':k', form, re.IGNORECASE)
 
                 pmu_prefix = 'cpu'
                 if unit == 'cpu_core':
@@ -566,19 +568,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             if j['MetricName'] == 'Page_Walks_Utilization' or j[
                     'MetricName'] == 'Backend_Bound':
                 j['MetricConstraint'] = 'NO_NMI_WATCHDOG'
-
-            expr = j['MetricExpr']
-            expr = re.sub(r':USER', ':u', expr)
-            j['MetricExpr'] = check_expr(expr)
-
-            if j['MetricName'] == 'Kernel_Utilization' or j[
-                    'MetricName'] == 'Kernel_CPI':
-                expr = j['MetricExpr']
-                expr = re.sub(r':u', ':k', expr)
-                expr = re.sub(r':SUP', ':k', expr)
-                expr = re.sub(r'CPU_CLK_UNHALTED.REF_TSC',
-                              'CPU_CLK_UNHALTED.THREAD', expr)
-                j['MetricExpr'] = check_expr(expr)
 
             if extramodel == 'BDW-DE':
                 if j['MetricName'] == 'Page_Walks_Utilization':
