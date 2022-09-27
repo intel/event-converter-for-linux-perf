@@ -203,13 +203,6 @@ def badevent(e):
         raise BadRef('/Match=')
 
 
-def add_sentence(s, n):
-    s = s.strip()
-    if not s.endswith('.'):
-        s += '.'
-    return s + ' ' + n
-
-
 def count_metric_events(v):
     global counts
     counts = counts + 1
@@ -563,6 +556,12 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             if desc.count('.') > 1:
                 sdesc = re.sub(r'(?<!i\.e)\. .*', '', desc)
                 if extra:
+                    def add_sentence(s, n):
+                        s = s.strip()
+                        if not s.endswith('.'):
+                            s += '.'
+                        return s + ' ' + n
+
                     sdesc = add_sentence(sdesc, extra)
                     desc = add_sentence(desc, extra)
                 j['BriefDescription'] = sdesc
