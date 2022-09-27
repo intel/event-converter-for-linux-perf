@@ -33,7 +33,8 @@ import argparse
 import re
 import json
 import sys
-from typing import (Optional, Sequence, TextIO)
+from collections import defaultdict
+from typing import (Optional, Sequence, Set, TextIO)
 
 # metrics redundant with perf or unusable
 ignore = set(['MUX', 'Power', 'Time'])
@@ -285,6 +286,8 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
     levels : Sequence[str] = []
     # A list of parents of the current topdown level.
     parents : Sequence[str] = []
+    # Map from a parent topdown metric name to its children's names.
+    children: Dict[str, Set[str]] = defaultdict(set)
     for l in csvf:
         if l[0] == 'Key':
             for ind, name in enumerate(l):
@@ -341,6 +344,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                         groups += f';{csv_groups}'
                     if level > 1:
                         groups += f';tma_{parents[-2].lower()}_group'
+                        children[parents[-2]].add(parents[-1])
                     info.append(PerfMetric(
                         f'tma_{metric_name.lower()}', form,
                         field('Metric Description'), groups, locate_with()
@@ -454,9 +458,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                         changed = changed or new_form != form
                         form = new_form
 
-                form = form.replace('##?(',
-                                    '(')  # XXX hack, shouldn't be needed
-                form = form.replace('##(', '(')  # XXX hack, shouldn't be needed
                 form = check_expr(form)
 
                 for i in range(5):
@@ -502,9 +503,19 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     return bracket(fixup(nodes[v]))
                 return v
 
+            def expand_hhq(parent: str) -> str:
+                return f'max({parent}, {" + ".join(sorted(children[parent]))})'
+
+            def expand_hh(parent: str) -> str:
+                return f'({" + ".join(sorted(children[parent]))})'
+
             try:
                 # iterate a few times to handle deeper nesting
                 for j in range(10):
+                    form = re.sub(r'##\?[a-zA-Z0-9_.]+',
+                                  lambda m: expand_hhq(m.group(0)[3:]), form)
+                    form = re.sub(r'##[a-zA-Z0-9_.]+',
+                                  lambda m: expand_hh(m.group(0)[2:]), form)
                     form = re.sub(r'#[a-zA-Z0-9_.]+',
                                   lambda m: resolve_aux(m.group(0)), form)
                     form = re.sub(r'[A-Z_a-z0-9.]+',
