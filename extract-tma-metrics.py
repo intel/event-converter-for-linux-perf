@@ -305,6 +305,18 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     return check_expr(field(j))
             return None
 
+        def locate_with() -> Optional[str]:
+            lw = field('Locate-with')
+            if not lw:
+                return None
+            m = re.match(r'(.+) ? (.+) : (.+)', lw)
+            if m:
+                if extramodel in m.group(1):
+                    lw = m.group(2)
+                else:
+                    lw = m.group(3)
+            return None if lw == '#NA' else lw
+
         def is_topdown_row(key: str) -> bool:
             topdown_keys = ['BE', 'BAD', 'RET', 'FE']
             return any(key.startswith(td_key) for td_key in topdown_keys)
@@ -331,7 +343,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                         groups += f';tma_{parents[-2].lower()}_group'
                     info.append(PerfMetric(
                         f'tma_{metric_name.lower()}', form,
-                        field('Metric Description'), groups, ''
+                        field('Metric Description'), groups, locate_with()
                     ))
                     infoname[metric_name] = form
         elif l[0].startswith('Info'):
@@ -340,7 +352,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 find_form(),
                 field('Metric Description'),
                 field('Metric Group'),
-                field('Locate-with')
+                locate_with()
             ))
             infoname[field('Level1')] = find_form()
         elif l[0].startswith('Aux'):
@@ -527,8 +539,8 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 return
             verboseprint(name, form, file=sys.stderr)
 
-            if (locate != ''):
-                desc = desc + ', Sample with: ' + locate
+            if locate:
+                desc = desc + ' Sample with: ' + locate
 
             j = {
                 'MetricName': name,
