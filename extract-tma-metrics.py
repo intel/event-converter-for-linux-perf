@@ -263,6 +263,8 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
     infoname : Dict[str, str] = {}
     # Mapping from a topdown metric name to its CPU specific formula.
     nodes : Dict[str, str] = {}
+    # Mapping from the TMA CSV metric name to the name used in the perf json.
+    tma_metric_names : Dict[str, str] = {}
     # Map from the column heading to the list index of that column.
     col_heading : Dict[str, int] = {}
     # A list of topdown levels such as 'Level1'.
@@ -328,11 +330,13 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     if level > 1:
                         groups += f';tma_{parents[-2].lower()}_group'
                         children[parents[-2]].add(parents[-1])
+                    tma_metric_name = f'tma_{metric_name.lower()}'
                     info.append(PerfMetric(
-                        f'tma_{metric_name.lower()}', form,
+                        tma_metric_name, form,
                         field('Metric Description'), groups, locate_with()
                     ))
                     infoname[metric_name] = form
+                    tma_metric_names[metric_name] = tma_metric_name
         elif l[0].startswith('Info'):
             info.append(PerfMetric(
                 field('Level1'),
@@ -473,10 +477,21 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 return bracket(child)
 
             def resolve_info(v: str):
-                if v in infoname:
+                if v in ignore:
+                    # If metric will be ignored in the output it must
+                    # be expanded.
                     return bracket(fixup(infoname[v]))
-                elif v in nodes:
-                    return bracket(fixup(nodes[v]))
+                if v in infoname:
+                    form = infoname[v]
+                    if form == '#NA':
+                        # Don't refer to empty metrics.
+                        return '0'
+                    # Check the expanded formula for bad events, which
+                    # would mean we want to drop this metric too.
+                    form = fixup(form)
+                    badevent(form)
+                    if v in tma_metric_names:
+                        return tma_metric_names[v]
                 return v
 
             def expand_hhq(parent: str) -> str:
