@@ -97,7 +97,6 @@ class Model:
                     cstate=False,
                     extramodel=self.shortname,
                     unit='cpu_core',
-                    expr_events='100',
                     memory=True,
                     verbose=False,
                     outfile=core_json)
@@ -118,7 +117,6 @@ class Model:
                         cstate=True,
                         extramodel=e_core_tma_cpu,
                         unit='cpu_atom',
-                        expr_events='100',
                         memory=True,
                         verbose=False,
                         outfile=atom_json)
@@ -137,7 +135,6 @@ class Model:
                     cstate=True,
                     extramodel=self.shortname,
                     unit='',
-                    expr_events='100',
                     memory=True,
                     verbose=False,
                     outfile=outfile)

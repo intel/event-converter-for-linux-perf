@@ -30,6 +30,6 @@
 
 set -e
 
-python3 extract-tma-metrics.py --memory --unit "cpu_core" --expr-events 100 --extramodel ADL ADL/RPL  $1 > adl-metrics-core.json
-python3 extract-tma-metrics.py --memory --unit "cpu_atom" --expr-events 100 --extramodel GRT GRT --cstate $2 > adl-metrics-atom.json
+python3 extract-tma-metrics.py --memory --unit "cpu_core" --extramodel ADL ADL/RPL  $1 > adl-metrics-core.json
+python3 extract-tma-metrics.py --memory --unit "cpu_atom" --extramodel GRT GRT --cstate $2 > adl-metrics-atom.json
 python3 merge-json adl-metrics-core.json adl-metrics-atom.json > adl-metrics.json

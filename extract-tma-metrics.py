@@ -203,11 +203,6 @@ def badevent(e):
         raise BadRef('/Match=')
 
 
-def count_metric_events(v):
-    global counts
-    counts = counts + 1
-
-
 def find_cstates(cpu):
     for (cpu_matches, core_cstates, pkg_cstates) in cstates:
         for x in cpu_matches:
@@ -246,8 +241,7 @@ def cstate_json(cpu):
 
 def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                         cstate: bool, extramodel: str, unit: str,
-                        expr_events: str, memory: bool, verbose: bool,
-                        outfile: TextIO):
+                        memory: bool, verbose: bool, outfile: TextIO):
     verboseprint = print if verbose else lambda *a, **k: None
     csvf = csv.reader(csvfile)
 
@@ -269,10 +263,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
     infoname : Dict[str, str] = {}
     # Mapping from a topdown metric name to its CPU specific formula.
     nodes : Dict[str, str] = {}
-    # The set of metric names that are resolved, that is all
-    # references to cells in the CSV file have been replaced with
-    # constants, literals or counter names.
-    resolved : Set[str] = set()
     # Map from the column heading to the list index of that column.
     col_heading : Dict[str, int] = {}
     # A list of topdown levels such as 'Level1'.
@@ -483,8 +473,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 return bracket(child)
 
             def resolve_info(v: str):
-                if v in resolved:
-                    return v
                 if v in infoname:
                     return bracket(fixup(infoname[v]))
                 elif v in nodes:
@@ -577,17 +565,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             if unit:
                 j['Unit'] = unit
 
-            tmp_expr = j['MetricExpr']
-            global counts
-            counts = 0
-            re.sub(r'[a-zA-Z_.]+', lambda m: count_metric_events(m.group(0)),
-                   tmp_expr)
-
-            if expr_events:
-                if counts >= int(expr_events):
-                    resolved.add(j['MetricName'])
-            else:
-                resolved.add(j['MetricName'])
             jo.append(j)
 
         form = resolve_all(form, cpu)
@@ -619,15 +596,14 @@ def main():
     ap.add_argument('--verbose', action='store_true')
     ap.add_argument('--memory', action='store_true')
     ap.add_argument('--cstate', action='store_true')
-    ap.add_argument('--expr-events')
     ap.add_argument('--extramodel')
     ap.add_argument('--extrajson', type=argparse.FileType('r'))
     ap.add_argument('--unit')
     args = ap.parse_args()
 
     extract_tma_metrics(args.csvfile, args.cpu, args.extrajson, args.cstate,
-                        args.extramodel, args.unit, args.expr_events,
-                        args.memory, args.verbose, args.output)
+                        args.extramodel, args.unit, args.memory, args.verbose,
+                        args.output)
 
 
 if __name__ == '__main__':
