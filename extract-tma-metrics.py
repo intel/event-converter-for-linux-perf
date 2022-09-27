@@ -460,15 +460,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 form = check_expr(form)
 
                 for i in range(5):
-                    #  if #Model in ['KBLR' 'CFL' 'CLX'] else
-                    m = re.match(r'(.*) if #Model in \[(.*)\] else (.*)', form)
-                    if m:
-                        if args.extramodel in m.group(2).replace("'",
-                                                                 '').split():
-                            form = m.group(1)
-                        else:
-                            form = m.group(3)
-
                     m = re.match(r'(.*) if #PMM_App_Direct else (.*)', form)
                     if m:
                         form = m.group(1)
