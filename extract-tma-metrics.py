@@ -510,8 +510,10 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 return f'({" + ".join(sorted(children[parent]))})'
 
             try:
-                # iterate a few times to handle deeper nesting
-                for j in range(10):
+                # Iterate until form stabilizes to handle deeper nesting.
+                changed = True
+                while changed:
+                    orig_form = form
                     form = re.sub(r'##\?[a-zA-Z0-9_.]+',
                                   lambda m: expand_hhq(m.group(0)[3:]), form)
                     form = re.sub(r'##[a-zA-Z0-9_.]+',
@@ -520,6 +522,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                                   lambda m: resolve_aux(m.group(0)), form)
                     form = re.sub(r'[A-Z_a-z0-9.]+',
                                   lambda m: resolve_info(m.group(0)), form)
+                    changed = orig_form != form
                 badevent(form)
             except BadRef as e:
                 verboseprint(
