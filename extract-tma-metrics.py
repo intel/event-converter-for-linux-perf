@@ -393,10 +393,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     form = form.replace(j, r)
 
                 form = re.sub(r'\bTSC\b', 'msr@tsc@', form)
-                if (unit == 'cpu_atom'):
-                    form = re.sub(r'\bCLKS\b', 'CPU_CLK_UNHALTED.CORE', form)
-                else:
-                    form = re.sub(r'\bCLKS\b', 'CPU_CLK_UNHALTED.THREAD', form)
                 form = form.replace('_PS', '')
                 form = form.replace('\b1==1\b', '1')
                 form = form.replace('#Memory == 1', '1' if memory else '0')
