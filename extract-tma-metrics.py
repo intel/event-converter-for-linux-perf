@@ -413,6 +413,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 form = re.sub(r'\bTSC\b', 'msr@tsc@', form)
                 form = form.replace('_PS', '')
                 form = form.replace('#Memory == 1', '1' if memory else '0')
+                form = form.replace('#PMM_App_Direct', '1' if memory else '0')
                 form = re.sub(r':USER', ':u', form, re.IGNORECASE)
                 form = re.sub(r':SUP', ':k', form, re.IGNORECASE)
 
@@ -458,22 +459,16 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                         changed = changed or new_form != form
                         form = new_form
 
-                form = check_expr(form)
-
-                for i in range(5):
-                    m = re.match(r'(.*) if #PMM_App_Direct else (.*)', form)
+                check_expr(form)
+                changed = True
+                while changed:
+                    changed = False
+                    m = re.match(r'(.*) if ([01]) else (.*)', form)
                     if m:
-                        form = m.group(1)
+                        changed = True
+                        form = check_expr(m.group(1) if m.group(2) == '1' else m.group(3))
 
-                    m = re.match(r'(.*) if 1 else (.*)', form)
-                    if m:
-                        form = m.group(1)
-
-                    m = re.match(r'(.*) if 0 else (.*)', form)
-                    if m:
-                        form = m.group(2)
-
-                return check_expr(form)
+                return form
 
             def resolve_aux(v: str) -> str:
                 if any(v == i for i in ['#core_wide', '#Model', '#SMT_on', '#num_dies']):
