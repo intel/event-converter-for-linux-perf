@@ -412,9 +412,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
 
                 form = re.sub(r'\bTSC\b', 'msr@tsc@', form)
                 form = form.replace('_PS', '')
-                form = form.replace('\b1==1\b', '1')
                 form = form.replace('#Memory == 1', '1' if memory else '0')
-                form = form.replace('#EBS_Mode', '#core_wide < 1')
                 form = re.sub(r':USER', ':u', form, re.IGNORECASE)
                 form = re.sub(r':SUP', ':k', form, re.IGNORECASE)
 
