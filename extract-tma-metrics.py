@@ -398,7 +398,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 form = form.replace('#Memory == 1', '1' if memory else '0')
                 form = form.replace('#EBS_Mode', '#core_wide < 1')
 
-                form = re.sub(r'1e12', '1000000000000', form)
                 form = re.sub(r':percore', '', form)
                 form = re.sub(r':perf_metrics', '', form)
                 pmu_prefix = 'cpu'
