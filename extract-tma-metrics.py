@@ -472,7 +472,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 return check_expr(form)
 
             def resolve_aux(v: str) -> str:
-                if any(v == i for i in ['#core_wide', '#Model', '#SMT_on']):
+                if any(v == i for i in ['#core_wide', '#Model', '#SMT_on', '#num_dies']):
                     return v
                 if v == '#DurationTimeInSeconds':
                     return 'duration_time'
@@ -531,11 +531,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 desc = desc + ', Sample with: ' + locate
 
             j = {
-                'MetricName': name,
-                'MetricExpr': form,
-            }
-
-            j1 = {
                 'MetricName': name,
                 'MetricExpr': form,
             }
@@ -608,19 +603,19 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 resolved.add(j['MetricName'])
             jo.append(j)
 
-            if j['MetricName'] == "Socket_CLKS":
-                j1['BriefDescription'] = "Uncore frequency per die [GHZ]"
-                j1['MetricExpr'] = "Socket_CLKS / #num_dies / duration_time / 1000000000"
-                j1['MetricGroup'] = "SoC"
-                j1['MetricName'] = "UNCORE_FREQ"
-                tmp_expr = j['MetricExpr']
-                expr = j1['MetricExpr']
-                expr = re.sub(r'Socket_CLKS',tmp_expr,expr)
-                j1['MetricExpr'] = check_expr(expr)
-                jo.append(j1)
-
         form = resolve_all(form, cpu)
         save_form(i.name, i.groups, form, i.desc, i.locate)
+
+    if 'Socket_CLKS' in infoname:
+        form = 'Socket_CLKS / #num_dies / duration_time / 1000000000'
+        form = check_expr(resolve_all(form, cpu))
+        if form:
+            je.append({
+                'MetricName': 'UNCORE_FREQ',
+                'MetricExpr': form,
+                'BriefDescription': 'Uncore frequency per die [GHZ]',
+                'MetricGroup': 'SoC'
+            })
 
     jo = jo + je
 
