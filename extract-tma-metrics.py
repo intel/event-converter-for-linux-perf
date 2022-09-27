@@ -535,11 +535,10 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
         def save_form(name, group, form, desc, locate, extra=''):
             if form == '':
                 return
-            if group.endswith(';'):
-                group = group.rstrip(';')
-            if group.startswith(';'):
-                group = group[1:]
-            group = group.strip()
+            # Make 'TmaL1' group names more consistent with the 'tma_'
+            # prefix and '_group' suffix.
+            group = re.sub(r'Tma(L[12])', r'tma_\1_group', group)
+            group = ';'.join([x.strip() for x in sorted(group.split(';'))])
             verboseprint(name, form, file=sys.stderr)
 
             if locate:
