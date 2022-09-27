@@ -165,7 +165,7 @@ cstates = [
 
 def find_tma_cpu(shortname):
     if shortname == 'BDW-DE':
-        return 'BDX'
+        return 'BDW'
     for key in ratio_column.keys():
         if shortname in key:
             return key
@@ -547,9 +547,23 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             if locate:
                 desc = desc + ' Sample with: ' + locate
 
+            if extramodel == 'BDW-DE' and name == 'Page_Walks_Utilization':
+                # Force in the BDX version.
+                form = ('( ITLB_MISSES.WALK_DURATION + '
+                        'DTLB_LOAD_MISSES.WALK_DURATION + '
+                        'DTLB_STORE_MISSES.WALK_DURATION + 7 * '
+                        '( DTLB_STORE_MISSES.WALK_COMPLETED + '
+                        'DTLB_LOAD_MISSES.WALK_COMPLETED + '
+                        'ITLB_MISSES.WALK_COMPLETED ) ) / '
+                        '( 2 * (( ( CPU_CLK_UNHALTED.THREAD / 2 ) * '
+                        '( 1 + CPU_CLK_UNHALTED.ONE_THREAD_ACTIVE / '
+                        'CPU_CLK_UNHALTED.REF_XCLK ) ) if #core_wide < 1 else '
+                        '( CPU_CLK_UNHALTED.THREAD_ANY / 2 ) if #SMT_on else '
+                        'CPU_CLK_UNHALTED.THREAD) )')
+
             j = {
                 'MetricName': name,
-                'MetricExpr': form,
+                'MetricExpr': check_expr(form),
             }
 
             if len(group) > 0:
@@ -568,28 +582,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             if j['MetricName'] == 'Page_Walks_Utilization' or j[
                     'MetricName'] == 'Backend_Bound':
                 j['MetricConstraint'] = 'NO_NMI_WATCHDOG'
-
-            if extramodel == 'BDW-DE':
-                if j['MetricName'] == 'Page_Walks_Utilization':
-                    j['MetricExpr'] = (
-                        '( cpu@ITLB_MISSES.WALK_DURATION\\,cmask\\=1@ + '
-                        'cpu@DTLB_LOAD_MISSES.WALK_DURATION\\,cmask\\=1@ + '
-                        'cpu@DTLB_STORE_MISSES.WALK_DURATION\\,cmask\\=1@ + '
-                        '7 * ( DTLB_STORE_MISSES.WALK_COMPLETED + '
-                        'DTLB_LOAD_MISSES.WALK_COMPLETED + '
-                        'ITLB_MISSES.WALK_COMPLETED ) ) / '
-                        'CPU_CLK_UNHALTED.THREAD')
-                if j['MetricName'] == 'Page_Walks_Utilization_SMT':
-                    j['MetricExpr'] = (
-                        '( cpu@ITLB_MISSES.WALK_DURATION\\,cmask\\=1@ + '
-                        'cpu@DTLB_LOAD_MISSES.WALK_DURATION\\,cmask\\=1@ + '
-                        'cpu@DTLB_STORE_MISSES.WALK_DURATION\\,cmask\\=1@ + '
-                        '7 * ( DTLB_STORE_MISSES.WALK_COMPLETED + '
-                        'DTLB_LOAD_MISSES.WALK_COMPLETED + '
-                        'ITLB_MISSES.WALK_COMPLETED ) ) / ( ( '
-                        'CPU_CLK_UNHALTED.THREAD / 2 ) * ( 1 + '
-                        'CPU_CLK_UNHALTED.ONE_THREAD_ACTIVE / '
-                        'CPU_CLK_UNHALTED.REF_XCLK ) )')
 
             if unit:
                 j['Unit'] = unit
