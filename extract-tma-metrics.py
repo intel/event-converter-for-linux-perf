@@ -112,6 +112,8 @@ topdown_event_fixes = (
     ('PERF_METRICS.HEAVY_OPERATIONS', 'topdown\-heavy\-ops'),
     ('PERF_METRICS.MEMORY_BOUND', 'topdown\-mem\-bound'),
     ('PERF_METRICS.RETIRING', 'topdown\-retiring'),
+    ('TOPDOWN.SLOTS:perf_metrics', 'TOPDOWN.SLOTS'),
+    ('TOPDOWN.SLOTS:percore', 'TOPDOWN.SLOTS'),
 )
 
 # copied from toplev parser. unify?
@@ -398,8 +400,6 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 form = form.replace('#Memory == 1', '1' if memory else '0')
                 form = form.replace('#EBS_Mode', '#core_wide < 1')
 
-                form = re.sub(r':percore', '', form)
-                form = re.sub(r':perf_metrics', '', form)
                 pmu_prefix = 'cpu'
                 if unit == 'cpu_core':
                     pmu_prefix = 'cpu_core'
