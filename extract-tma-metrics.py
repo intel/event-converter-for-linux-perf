@@ -410,6 +410,8 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 form = form.replace('else 0 +', 'else')
                 form = form.replace('( ', '(')
                 form = form.replace(' )', ')')
+                form = form.replace(' , ', ', ')
+                form = form.replace('  ', ' ')
 
                 pmu_prefix = 'cpu'
                 if unit == 'cpu_core':
