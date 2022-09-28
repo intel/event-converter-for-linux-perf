@@ -463,6 +463,10 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     if m:
                         changed = True
                         form = check_expr(m.group(1) if m.group(2) == '1' else m.group(3))
+                    m = re.search(r'\(([0-9.]+) \* ([A-Za-z_]+)\) - \(([0-9.]+) \* ([A-Za-z_]+)\)', form)
+                    if m and m.group(2) == m.group(4):
+                        changed = True
+                        form = form.replace(m.group(0), f'{(float(m.group(1)) - float(m.group(3))):g} * {m.group(2)}')
 
                 return form
 
