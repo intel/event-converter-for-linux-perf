@@ -33,7 +33,8 @@ import argparse
 import re
 import json
 import sys
-from typing import TextIO
+from collections import defaultdict
+from typing import (Optional, Sequence, Set, TextIO)
 
 # metrics redundant with perf or unusable
 ignore = set(['MUX', 'Power', 'Time'])
@@ -103,6 +104,19 @@ event_fixes = (
     ('UNC_C_CLOCKTICKS:one_unit', 'cbox_0@event=0x0@'),
 )
 
+topdown_event_fixes = (
+    ('PERF_METRICS.BACKEND_BOUND', 'topdown\-be\-bound'),
+    ('PERF_METRICS.BAD_SPECULATION', 'topdown\-bad\-spec'),
+    ('PERF_METRICS.BRANCH_MISPREDICTS', 'topdown\-br\-mispredict'),
+    ('PERF_METRICS.FETCH_LATENCY', 'topdown\-fetch\-lat'),
+    ('PERF_METRICS.FRONTEND_BOUND', 'topdown\-fe\-bound'),
+    ('PERF_METRICS.HEAVY_OPERATIONS', 'topdown\-heavy\-ops'),
+    ('PERF_METRICS.MEMORY_BOUND', 'topdown\-mem\-bound'),
+    ('PERF_METRICS.RETIRING', 'topdown\-retiring'),
+    ('TOPDOWN.SLOTS:perf_metrics', 'TOPDOWN.SLOTS'),
+    ('TOPDOWN.SLOTS:percore', 'TOPDOWN.SLOTS'),
+)
+
 # copied from toplev parser. unify?
 ratio_column = {
     "IVT": ("IVT", "IVB", "JKT/SNB-EP", "SNB"),
@@ -151,13 +165,14 @@ cstates = [
 
 def find_tma_cpu(shortname):
     if shortname == 'BDW-DE':
-        return 'BDX'
+        return 'BDW'
     for key in ratio_column.keys():
         if shortname in key:
             return key
     return None
 
-def check_expr(expr):
+def check_expr(expr : str) -> str:
+    """Basic sanity checks of the given formula."""
     if expr.count('(') != expr.count(')'):
         raise Exception('Mismatched parentheses', expr)
     return expr
@@ -173,16 +188,6 @@ def bracket(expr):
     return expr
 
 
-class SeenEBS(Exception):
-    pass
-
-
-def update_fix(x):
-    x = x.replace(',', r'\,')
-    x = x.replace('=', r'\=')
-    return x
-
-
 class BadRef(Exception):
 
     def __init__(self, v):
@@ -196,24 +201,6 @@ def badevent(e):
         raise BadRef('Base_Frequency')
     if '/Match=' in e:
         raise BadRef('/Match=')
-
-
-def smt_name(n):
-    if n.startswith('SMT'):
-        return n
-    return n + '_SMT'
-
-
-def add_sentence(s, n):
-    s = s.strip()
-    if not s.endswith('.'):
-        s += '.'
-    return s + ' ' + n
-
-
-def count_metric_events(v):
-    global counts
-    counts = counts + 1
 
 
 def find_cstates(cpu):
@@ -254,26 +241,51 @@ def cstate_json(cpu):
 
 def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                         cstate: bool, extramodel: str, unit: str,
-                        expr_events: str, memory: bool, verbose: bool,
-                        outfile: TextIO):
+                        memory: bool, verbose: bool, outfile: TextIO):
     verboseprint = print if verbose else lambda *a, **k: None
     csvf = csv.reader(csvfile)
 
-    info = []
-    aux = {}
-    infoname = {}
-    nodes = {}
-    l1nodes = []
-    resolved = []
-    counts = 0
+    class PerfMetric:
+       def  __init__(self, name: str, form: str, desc: str, groups: str, locate: str):
+           self.name = name
+           self.form = form
+           self.desc = desc
+           self.groups = groups
+           self.locate = locate
+
+    # All the metrics read from the CSV file.
+    info : Sequence[PerfMetric] = []
+    # Mapping from an auxiliary name like #Pipeline_Width to the CPU
+    # specific formula used to compute it.
+    aux : Dict[str, str] = {}
+    # Mapping from a metric name to its CPU specific formula for
+    # Info.* and topdown metrics.
+    infoname : Dict[str, str] = {}
+    # Mapping from a topdown metric name to its CPU specific formula.
+    nodes : Dict[str, str] = {}
+    # Mapping from the TMA CSV metric name to the name used in the perf json.
+    tma_metric_names : Dict[str, str] = {}
+    # Map from the column heading to the list index of that column.
+    col_heading : Dict[str, int] = {}
+    # A list of topdown levels such as 'Level1'.
+    levels : Sequence[str] = []
+    # A list of parents of the current topdown level.
+    parents : Sequence[str] = []
+    # Map from a parent topdown metric name to its children's names.
+    children: Dict[str, Set[str]] = defaultdict(set)
     for l in csvf:
         if l[0] == 'Key':
-            f = {name: ind for name, ind in zip(l, range(len(l)))}
-            #print(f)
-        def field(x):
-            return l[f[x]]
+            for ind, name in enumerate(l):
+                col_heading[name] = ind
+                if name.startswith('Level'):
+                    levels.append(name)
 
-        def find_form():
+        def field(x: str) -> str:
+            """Given the name of a column, return the value in the current line of it."""
+            return l[col_heading[x]]
+
+        def find_form() -> Optional[str]:
+            """Find the formula for CPU in the current CSV line."""
             if field(cpu):
                 return check_expr(field(cpu))
             for j in ratio_column[cpu]:
@@ -281,35 +293,64 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     return check_expr(field(j))
             return None
 
-        if l[0].startswith('BE') or l[0].startswith('BAD') or l[0].startswith(
-                'RET') or l[0].startswith('FE'):
-            for j in ('Level1', 'Level2', 'Level3', 'Level4'):
-                if field(j):
-                    form = find_form()
-                    nodes[field(j)] = form
-                    if j == 'Level1':
-                        info.append([
-                            field(j), form,
-                            field('Metric Description'), 'TopdownL1', ''
-                        ])
-                        infoname[field(j)] = form
+        def locate_with() -> Optional[str]:
+            lw = field('Locate-with')
+            if not lw:
+                return None
+            m = re.match(r'(.+) ? (.+) : (.+)', lw)
+            if m:
+                if extramodel in m.group(1):
+                    lw = m.group(2)
+                else:
+                    lw = m.group(3)
+            return None if lw == '#NA' else lw
 
-        if l[0].startswith('Info'):
-            info.append([
+        def is_topdown_row(key: str) -> bool:
+            topdown_keys = ['BE', 'BAD', 'RET', 'FE']
+            return any(key.startswith(td_key) for td_key in topdown_keys)
+
+        if is_topdown_row(l[0]):
+            for j in levels:
+                metric_name = field(j)
+                if metric_name:
+                    level = int(j[-1])
+                    if level > len(parents):
+                        parents.append(metric_name)
+                    else:
+                        while level != len(parents):
+                            parents.pop()
+                        parents[-1] = field(j)
+                    verboseprint(f'{field(j)} => {str(parents)}')
+                    form = find_form()
+                    nodes[metric_name] = form
+                    groups = f'TopdownL{level}'
+                    csv_groups = field('Metric Group')
+                    if csv_groups:
+                        groups += f';{csv_groups}'
+                    if level > 1:
+                        groups += f';tma_{parents[-2].lower()}_group'
+                        children[parents[-2]].add(parents[-1])
+                    tma_metric_name = f'tma_{metric_name.lower()}'
+                    info.append(PerfMetric(
+                        tma_metric_name, form,
+                        field('Metric Description'), groups, locate_with()
+                    ))
+                    infoname[metric_name] = form
+                    tma_metric_names[metric_name] = tma_metric_name
+        elif l[0].startswith('Info'):
+            info.append(PerfMetric(
                 field('Level1'),
                 find_form(),
                 field('Metric Description'),
                 field('Metric Group'),
-                field('Locate-with')
-            ])
+                locate_with()
+            ))
             infoname[field('Level1')] = find_form()
-
-        if l[0].startswith('Aux'):
+        elif l[0].startswith('Aux'):
             form = find_form()
-            if form == '#NA':
-                continue
-            aux[field('Level1')] = form
-            verboseprint('Adding aux', field('Level1'), form, file=sys.stderr)
+            if form != '#NA':
+                aux[field('Level1')] = form
+                verboseprint('Adding aux', field('Level1'), form, file=sys.stderr)
 
     jo = []
     je = []
@@ -319,28 +360,30 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
         je.extend(cstate_json(cpu))
 
     for i in info:
-        if i[0] in ignore:
-            verboseprint('Skipping', i[0], file=sys.stderr)
+        if i.name in ignore:
+            verboseprint('Skipping', i.name, file=sys.stderr)
             continue
 
-        form = i[1]
+        form = i.form
         if form is None:
-            verboseprint('no formula for', i[0], file=sys.stderr)
+            verboseprint('no formula for', i.name, file=sys.stderr)
             continue
         if form == '#NA' or form == 'N/A':
             continue
-        verboseprint(i[0], 'orig form', form, file=sys.stderr)
+        verboseprint(i.name, 'orig form', form, file=sys.stderr)
 
-        if i[3] == '':
-            if i[0] in groups:
-                i[3] = groups[i[0]]
+        if i.groups == '':
+            if i.name in groups:
+                i.groups = groups[i.name]
 
-        if i[3] == 'Topdown':
-            i[3] = 'TopDown'
+        def resolve_all(form: str, cpu: str):
 
-        def resolve_all(form: str, cpu: str, ebs_mode: int = -1):
+            def fixup(form: str):
+                def update_fix(x: str) -> str:
+                    x = x.replace(',', r'\,')
+                    x = x.replace('=', r'\=')
+                    return x
 
-            def fixup(form: str, ebs_mode: int):
                 form = check_expr(form)
                 if (cpu == 'SPR'):
                     for j, r in spr_event_fixes:
@@ -351,19 +394,25 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 else:
                     for j, r in event_fixes:
                         form = form.replace(j, update_fix(r))
+                for j, r in topdown_event_fixes:
+                    form = form.replace(j, r)
 
                 form = re.sub(r'\bTSC\b', 'msr@tsc@', form)
-                if (unit == 'cpu_atom'):
-                    form = re.sub(r'\bCLKS\b', 'CPU_CLK_UNHALTED.CORE', form)
-                else:
-                    form = re.sub(r'\bCLKS\b', 'CPU_CLK_UNHALTED.THREAD', form)
                 form = form.replace('_PS', '')
-                form = form.replace('\b1==1\b', '1')
                 form = form.replace('#Memory == 1', '1' if memory else '0')
+                form = form.replace('#PMM_App_Direct', '1' if memory else '0')
+                form = re.sub(r':USER', ':u', form, re.IGNORECASE)
+                form = re.sub(r':SUP', ':k', form, re.IGNORECASE)
+                form = form.replace('(0 + ', '(')
+                form = form.replace(' + 0)', ')')
+                form = form.replace('+ 0 +', '+')
+                form = form.replace(', 0 +', ',')
+                form = form.replace('else 0 +', 'else')
+                form = form.replace('( ', '(')
+                form = form.replace(' )', ')')
+                form = form.replace(' , ', ', ')
+                form = form.replace('  ', ' ')
 
-                form = re.sub(r'1e12', '1000000000000', form)
-                form = re.sub(r':percore', '', form)
-                form = re.sub(r':perf_metrics', '', form)
                 pmu_prefix = 'cpu'
                 if unit == 'cpu_core':
                     pmu_prefix = 'cpu_core'
@@ -392,12 +441,12 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                          rf'{pmu_prefix}@\1@k'),
                         ('(' + event_pattern + rf'):user',
                          rf'{pmu_prefix}@\1@u'),
+                        ('(' + event_pattern + rf'):i1',
+                         rf'{pmu_prefix}@\1\\,inv@'),
                         ('(' + event_pattern + rf'):c(\d+)',
                          rf'{pmu_prefix}@\1\\,cmask\\=\2@'),
                         ('(' + event_pattern + rf'):u0x([a-fA-F0-9]+)',
                          rf'{pmu_prefix}@\1\\,umask\\=0x\2@'),
-                        ('(' + event_pattern + rf'):i1',
-                         rf'{pmu_prefix}@\1\\,inv@'),
                         ('(' + event_pattern + rf'):e1',
                          rf'{pmu_prefix}@\1\\,edge@'),
                     ]:
@@ -406,67 +455,30 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                         changed = changed or new_form != form
                         form = new_form
 
-                form = form.replace('##?(',
-                                    '(')  # XXX hack, shouldn't be needed
-                form = form.replace('##(', '(')  # XXX hack, shouldn't be needed
-                form = check_expr(form)
-
-                if '#EBS_Mode' in form:
-                    if ebs_mode == -1:
-                        raise SeenEBS()
-
-                for i in range(5):
-                    #  if #Model in ['KBLR' 'CFL' 'CLX'] else
-                    m = re.match(r'(.*) if #Model in \[(.*)\] else (.*)', form)
+                check_expr(form)
+                changed = True
+                while changed:
+                    changed = False
+                    m = re.match(r'(.*) if ([01]) else (.*)', form)
                     if m:
-                        if args.extramodel in m.group(2).replace("'",
-                                                                 '').split():
-                            form = m.group(1)
-                        else:
-                            form = m.group(3)
+                        changed = True
+                        form = check_expr(m.group(1) if m.group(2) == '1' else m.group(3))
+                    m = re.search(r'\(([0-9.]+) \* ([A-Za-z_]+)\) - \(([0-9.]+) \* ([A-Za-z_]+)\)', form)
+                    if m and m.group(2) == m.group(4):
+                        changed = True
+                        form = form.replace(m.group(0), f'{(float(m.group(1)) - float(m.group(3))):g} * {m.group(2)}')
 
-                    if ebs_mode >= 0:
-                        m = re.match(r'(.*) if #SMT_on else (.*)', form)
-                        if m:
-                            form = m.group(2) if ebs_mode == 0 else m.group(1)
+                return form
 
-                    m = re.match(r'(.*) if #EBS_Mode else (.*)', form)
-                    if m:
-                        form = m.group(2) if ebs_mode == 0 else m.group(1)
-
-                    m = re.match(r'(.*) if #PMM_App_Direct else (.*)', form)
-                    if m:
-                        form = m.group(1)
-
-                    m = re.match(r'(.*) if 1 else (.*)', form)
-                    if m:
-                        form = m.group(1)
-
-                    m = re.match(r'(.*) if 0 else (.*)', form)
-                    if m:
-                        form = m.group(2)
-
-                return check_expr(form)
-
-            def resolve_aux(v: str):
-                if v == '#Base_Frequency':
+            def resolve_aux(v: str) -> str:
+                if any(v == i for i in ['#core_wide', '#Model', '#SMT_on', '#num_dies']):
                     return v
-                if v == '#SMT_on':
-                    return v
-                if v == '#PERF_METRICS_MSR':
-                    return v
-                if v == '#Retired_Slots':
-                    if 'ICL' in ratio_column[cpu]:
-                        #"Retiring * SLOTS"
-                        return '(' + infoname[
-                            'Retiring'] + ')' + ' * ' + '(' + infoname[
-                                'SLOTS'] + ')'
-                    else:
-                        return 'UOPS_RETIRED.RETIRE_SLOTS'
                 if v == '#DurationTimeInSeconds':
                     return 'duration_time'
-                if v == '#Model':
-                    return '#Model'
+                if v == '#EBS_Mode':
+                    return '#core_wide < 1'
+                if v == '#Memory':
+                    return '1' if memory else '0'
                 if v == '#NA':
                     return '0'
                 if v[1:] in nodes:
@@ -474,60 +486,85 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 else:
                     child = aux[v]
                 badevent(child)
-                child = fixup(child, ebs_mode)
-                #print(m.group(0), "=>", child, file=sys.stderr)
+                child = fixup(child)
                 return bracket(child)
 
             def resolve_info(v: str):
-                if v in resolved:
-                    return v
+                if v in ignore:
+                    # If metric will be ignored in the output it must
+                    # be expanded.
+                    return bracket(fixup(infoname[v]))
                 if v in infoname:
-                    return bracket(fixup(infoname[v], ebs_mode))
-                elif v in nodes:
-                    return bracket(fixup(nodes[v], ebs_mode))
+                    form = infoname[v]
+                    if form == '#NA':
+                        # Don't refer to empty metrics.
+                        return '0'
+                    # Check the expanded formula for bad events, which
+                    # would mean we want to drop this metric too.
+                    form = fixup(form)
+                    badevent(form)
+                    if v in tma_metric_names:
+                        return tma_metric_names[v]
                 return v
 
+            def expand_hhq(parent: str) -> str:
+                return f'max({parent}, {" + ".join(sorted(children[parent]))})'
+
+            def expand_hh(parent: str) -> str:
+                return f'({" + ".join(sorted(children[parent]))})'
+
             try:
-                # iterate a few times to handle deeper nesting
-                for j in range(10):
+                # Iterate until form stabilizes to handle deeper nesting.
+                changed = True
+                while changed:
+                    orig_form = form
+                    form = re.sub(r'##\?[a-zA-Z0-9_.]+',
+                                  lambda m: expand_hhq(m.group(0)[3:]), form)
+                    form = re.sub(r'##[a-zA-Z0-9_.]+',
+                                  lambda m: expand_hh(m.group(0)[2:]), form)
                     form = re.sub(r'#[a-zA-Z0-9_.]+',
                                   lambda m: resolve_aux(m.group(0)), form)
                     form = re.sub(r'[A-Z_a-z0-9.]+',
                                   lambda m: resolve_info(m.group(0)), form)
+                    changed = orig_form != form
                 badevent(form)
             except BadRef as e:
                 verboseprint(
-                    'Skipping ' + i[0] + ' due to ' + e.name, file=sys.stderr)
+                    'Skipping ' + i.name + ' due to ' + e.name, file=sys.stderr)
                 return ''
 
-            form = fixup(form, ebs_mode)
+            form = fixup(form)
             return form
 
         def save_form(name, group, form, desc, locate, extra=''):
             if form == '':
                 return
-            if group.endswith(';'):
-                group = group.rstrip(';')
-            if group.startswith(';'):
-                group = group[1:]
-            group = group.strip()
-            if 'PERF_METRICS' in form:
-                return
-            if 'Mispredicts_Resteers' in form:
-                return
+            # Make 'TmaL1' group names more consistent with the 'tma_'
+            # prefix and '_group' suffix.
+            group = re.sub(r'Tma(L[12])', r'tma_\1_group', group)
+            group = ';'.join([x.strip() for x in sorted(group.split(';'))])
             verboseprint(name, form, file=sys.stderr)
 
-            if (locate != ''):
-                desc = desc + ', Sample with: ' + locate
+            if locate:
+                desc = desc + ' Sample with: ' + locate
+
+            if extramodel == 'BDW-DE' and name == 'Page_Walks_Utilization':
+                # Force in the BDX version.
+                form = ('( ITLB_MISSES.WALK_DURATION + '
+                        'DTLB_LOAD_MISSES.WALK_DURATION + '
+                        'DTLB_STORE_MISSES.WALK_DURATION + 7 * '
+                        '( DTLB_STORE_MISSES.WALK_COMPLETED + '
+                        'DTLB_LOAD_MISSES.WALK_COMPLETED + '
+                        'ITLB_MISSES.WALK_COMPLETED ) ) / '
+                        '( 2 * (( ( CPU_CLK_UNHALTED.THREAD / 2 ) * '
+                        '( 1 + CPU_CLK_UNHALTED.ONE_THREAD_ACTIVE / '
+                        'CPU_CLK_UNHALTED.REF_XCLK ) ) if #core_wide < 1 else '
+                        '( CPU_CLK_UNHALTED.THREAD_ANY / 2 ) if #SMT_on else '
+                        'CPU_CLK_UNHALTED.THREAD) )')
 
             j = {
                 'MetricName': name,
-                'MetricExpr': form,
-            }
-
-            j1 = {
-                'MetricName': name,
-                'MetricExpr': form,
+                'MetricExpr': check_expr(form),
             }
 
             if len(group) > 0:
@@ -535,6 +572,12 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             if desc.count('.') > 1:
                 sdesc = re.sub(r'(?<!i\.e)\. .*', '', desc)
                 if extra:
+                    def add_sentence(s, n):
+                        s = s.strip()
+                        if not s.endswith('.'):
+                            s += '.'
+                        return s + ' ' + n
+
                     sdesc = add_sentence(sdesc, extra)
                     desc = add_sentence(desc, extra)
                 j['BriefDescription'] = sdesc
@@ -547,79 +590,24 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     'MetricName'] == 'Backend_Bound':
                 j['MetricConstraint'] = 'NO_NMI_WATCHDOG'
 
-            expr = j['MetricExpr']
-            expr = re.sub(r':USER', ':u', expr)
-            j['MetricExpr'] = check_expr(expr)
-
-            if j['MetricName'] == 'Kernel_Utilization' or j[
-                    'MetricName'] == 'Kernel_CPI':
-                expr = j['MetricExpr']
-                expr = re.sub(r':u', ':k', expr)
-                expr = re.sub(r':SUP', ':k', expr)
-                expr = re.sub(r'CPU_CLK_UNHALTED.REF_TSC',
-                              'CPU_CLK_UNHALTED.THREAD', expr)
-                j['MetricExpr'] = check_expr(expr)
-
-            if extramodel == 'BDW-DE':
-                if j['MetricName'] == 'Page_Walks_Utilization':
-                    j['MetricExpr'] = (
-                        '( cpu@ITLB_MISSES.WALK_DURATION\\,cmask\\=1@ + '
-                        'cpu@DTLB_LOAD_MISSES.WALK_DURATION\\,cmask\\=1@ + '
-                        'cpu@DTLB_STORE_MISSES.WALK_DURATION\\,cmask\\=1@ + '
-                        '7 * ( DTLB_STORE_MISSES.WALK_COMPLETED + '
-                        'DTLB_LOAD_MISSES.WALK_COMPLETED + '
-                        'ITLB_MISSES.WALK_COMPLETED ) ) / '
-                        'CPU_CLK_UNHALTED.THREAD')
-                if j['MetricName'] == 'Page_Walks_Utilization_SMT':
-                    j['MetricExpr'] = (
-                        '( cpu@ITLB_MISSES.WALK_DURATION\\,cmask\\=1@ + '
-                        'cpu@DTLB_LOAD_MISSES.WALK_DURATION\\,cmask\\=1@ + '
-                        'cpu@DTLB_STORE_MISSES.WALK_DURATION\\,cmask\\=1@ + '
-                        '7 * ( DTLB_STORE_MISSES.WALK_COMPLETED + '
-                        'DTLB_LOAD_MISSES.WALK_COMPLETED + '
-                        'ITLB_MISSES.WALK_COMPLETED ) ) / ( ( '
-                        'CPU_CLK_UNHALTED.THREAD / 2 ) * ( 1 + '
-                        'CPU_CLK_UNHALTED.ONE_THREAD_ACTIVE / '
-                        'CPU_CLK_UNHALTED.REF_XCLK ) )')
-
             if unit:
                 j['Unit'] = unit
 
-            tmp_expr = j['MetricExpr']
-            global counts
-            counts = 0
-            re.sub(r'[a-zA-Z_.]+', lambda m: count_metric_events(m.group(0)),
-                   tmp_expr)
-
-            if expr_events:
-                if counts >= int(expr_events):
-                    resolved.append(j['MetricName'])
-            else:
-                resolved.append(j['MetricName'])
             jo.append(j)
 
-            if j['MetricName'] == "Socket_CLKS":
-                j1['BriefDescription'] = "Uncore frequency per die [GHZ]"
-                j1['MetricExpr'] = "Socket_CLKS / #num_dies / duration_time / 1000000000"
-                j1['MetricGroup'] = "SoC"
-                j1['MetricName'] = "UNCORE_FREQ"
-                tmp_expr = j['MetricExpr']
-                expr = j1['MetricExpr']
-                expr = re.sub(r'Socket_CLKS',tmp_expr,expr)
-                j1['MetricExpr'] = check_expr(expr)
-                jo.append(j1)
+        form = resolve_all(form, cpu)
+        save_form(i.name, i.groups, form, i.desc, i.locate)
 
-        try:
-            form = resolve_all(form, cpu, -1)
-            save_form(i[0], i[3], form, i[2], i[4])
-        except SeenEBS:
-            nf = resolve_all(form, cpu, 0)
-            save_form(i[0], i[3], nf, i[2], i[4])
-            nf = resolve_all(form, cpu, 1)
-            save_form(
-                smt_name(i[0]), smt_name(i[3]), nf, i[2], i[4],
-                'SMT version; use when SMT is enabled and measuring per logical CPU.'
-            )
+    if 'Socket_CLKS' in infoname:
+        form = 'Socket_CLKS / #num_dies / duration_time / 1000000000'
+        form = check_expr(resolve_all(form, cpu))
+        if form:
+            je.append({
+                'MetricName': 'UNCORE_FREQ',
+                'MetricExpr': form,
+                'BriefDescription': 'Uncore frequency per die [GHZ]',
+                'MetricGroup': 'SoC'
+            })
 
     jo = jo + je
 
@@ -636,15 +624,14 @@ def main():
     ap.add_argument('--verbose', action='store_true')
     ap.add_argument('--memory', action='store_true')
     ap.add_argument('--cstate', action='store_true')
-    ap.add_argument('--expr-events')
     ap.add_argument('--extramodel')
     ap.add_argument('--extrajson', type=argparse.FileType('r'))
     ap.add_argument('--unit')
     args = ap.parse_args()
 
     extract_tma_metrics(args.csvfile, args.cpu, args.extrajson, args.cstate,
-                        args.extramodel, args.unit, args.expr_events,
-                        args.memory, args.verbose, args.output)
+                        args.extramodel, args.unit, args.memory, args.verbose,
+                        args.output)
 
 
 if __name__ == '__main__':
