@@ -229,8 +229,9 @@ class Mapfile:
             mapfile = csv.reader(mapfile_csv_lines)
             first_row = True
             for l in mapfile:
-                if len(l) == 6:
-                    l.append("")
+                while len(l) < 7:
+                    # Fix missing columns.
+                    l.append('')
                 family_model, version, path, event_type, core_type, native_model_id, core_role_name = l
                 if first_row:
                     assert family_model == 'Family-model'
@@ -247,8 +248,15 @@ class Mapfile:
                 url = base_url + path
 
                 # Bug fixes:
-                if shortname == 'SNR' and event_type == 'uncore' and 'experimental' in path:
-                    event_type = 'uncore experimental'
+                if shortname == 'ADL' and event_type == 'core':
+                    # ADL GenuineIntel-6-BE only has atom cores and so
+                    # they don't set event_type to 'hybridcore' but
+                    # 'core' leading to ADL having multiple core
+                    # paths. Avoid this by setting the type back to
+                    # atom.
+                    assert 'gracemont' in path
+                    event_type = 'atom'
+                    core_role_name = 'Atom'
 
                 # Workarounds:
                 if event_type == 'hybridcore':
