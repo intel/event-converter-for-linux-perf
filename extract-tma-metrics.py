@@ -246,12 +246,14 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
     csvf = csv.reader(csvfile)
 
     class PerfMetric:
-       def  __init__(self, name: str, form: str, desc: str, groups: str, locate: str):
+       def  __init__(self, name: str, form: str, desc: str, groups: str,
+                     locate: str, scale_unit: Optional[str] = None):
            self.name = name
            self.form = form
            self.desc = desc
            self.groups = groups
            self.locate = locate
+           self.scale_unit = scale_unit
 
     # All the metrics read from the CSV file.
     info : Sequence[PerfMetric] = []
@@ -333,7 +335,8 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                     tma_metric_name = f'tma_{metric_name.lower()}'
                     info.append(PerfMetric(
                         tma_metric_name, form,
-                        field('Metric Description'), groups, locate_with()
+                        field('Metric Description'), groups, locate_with(),
+                        '100%'
                     ))
                     infoname[metric_name] = form
                     tma_metric_names[metric_name] = tma_metric_name
@@ -536,7 +539,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             form = fixup(form)
             return form
 
-        def save_form(name, group, form, desc, locate, extra=''):
+        def save_form(name, group, form, desc, locate, scale_unit, extra=''):
             if form == '':
                 return
             # Make 'TmaL1' group names more consistent with the 'tma_'
@@ -593,10 +596,13 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             if unit:
                 j['Unit'] = unit
 
+            if scale_unit:
+                j['ScaleUnit'] = scale_unit
+
             jo.append(j)
 
         form = resolve_all(form, cpu)
-        save_form(i.name, i.groups, form, i.desc, i.locate)
+        save_form(i.name, i.groups, form, i.desc, i.locate, i.scale_unit)
 
     if 'Socket_CLKS' in infoname:
         form = 'Socket_CLKS / #num_dies / duration_time / 1000000000'
