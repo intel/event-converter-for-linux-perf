@@ -602,6 +602,14 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             jo.append(j)
 
         form = resolve_all(form, cpu, expand_metrics=False)
+        needs_slots = 'topdown\-' in form and 'SLOTS' not in form
+        if needs_slots:
+            # topdown events must always be grouped with a
+            # TOPDOWN.SLOTS event. Detect when this is missing in a
+            # metric and insert a dummy value. Metrics using other
+            # metrics with topdown events will get a TOPDOWN.SLOTS
+            # event from them.
+            form = f'{form} + 0*SLOTS'
         save_form(i.name, i.groups, form, i.desc, i.locate, i.scale_unit)
 
     if 'Socket_CLKS' in infoname:
