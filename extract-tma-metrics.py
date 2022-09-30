@@ -379,7 +379,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             if i.name in groups:
                 i.groups = groups[i.name]
 
-        def resolve_all(form: str, cpu: str):
+        def resolve_all(form: str, cpu: str, expand_metrics: bool):
 
             def fixup(form: str):
                 def update_fix(x: str) -> str:
@@ -493,7 +493,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 return bracket(child)
 
             def resolve_info(v: str):
-                if v in ignore:
+                if v in ignore or (expand_metrics and v in infoname):
                     # If metric will be ignored in the output it must
                     # be expanded.
                     return bracket(fixup(infoname[v]))
@@ -601,12 +601,12 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
 
             jo.append(j)
 
-        form = resolve_all(form, cpu)
+        form = resolve_all(form, cpu, expand_metrics=False)
         save_form(i.name, i.groups, form, i.desc, i.locate, i.scale_unit)
 
     if 'Socket_CLKS' in infoname:
         form = 'Socket_CLKS / #num_dies / duration_time / 1000000000'
-        form = check_expr(resolve_all(form, cpu))
+        form = check_expr(resolve_all(form, cpu, expand_metrics=False))
         if form:
             je.append({
                 'MetricName': 'UNCORE_FREQ',
