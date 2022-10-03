@@ -140,26 +140,7 @@ class Model:
                     outfile=outfile)
 
         # Additional metrics
-        broken_extra_metrics = {
-            'HSX': [
-                # Missing event 'c'.
-                'uncore_frequency',
-                # Missing event 'e'.
-                'llc_data_read_demand_plus_prefetch_miss_latency',
-                'llc_data_read_demand_plus_prefetch_miss_latency_for_local_requests',
-                'llc_data_read_demand_plus_prefetch_miss_latency_for_remote_requests',
-            ],
-            'ICX': [
-                # Missing event EXE_ACTIVITY.EXE_BOUND_0_PORTS
-                'tma_ports_utilization_percent',
-            ],
-            'SKX': [
-                # Missing cha/unc_cha_tor_occupancy.ia_miss/
-                'llc_data_read_demand_plus_prefetch_miss_latency',
-                'llc_data_read_demand_plus_prefetch_miss_latency_for_local_requests',
-                'llc_data_read_demand_plus_prefetch_miss_latency_for_remote_requests',
-            ],
-        }
+        broken_extra_metrics = {}
         if 'extra metrics' in self.files:
             with urllib.request.urlopen(
                     self.files['extra metrics']) as extra_metrics_json:
@@ -171,10 +152,12 @@ class Model:
                             'MetricName'].lower() in broken_extra_metrics[
                                 self.shortname]:
                         continue
-                    metrics = [
-                        x for x in metrics if x['MetricName'].lower() !=
-                        extra_metric['MetricName'].lower()
-                    ]
+                    if any(extra_metric['MetricName'].lower() == x['MetricName'].lower() for x in metrics):
+                        # Prefer existing metrics over those in extra
+                        # metrics as the existing metrics may be
+                        # written in terms of each other and have
+                        # consistent units.
+                        continue
                     metrics.append(extra_metric)
                 outfile = open(metrics_file, 'w', encoding='ascii')
                 outfile.write(
