@@ -35,7 +35,7 @@ import copy
 import argparse
 import itertools
 import re
-from typing import TextIO
+from typing import (Dict, Optional, TextIO)
 
 repl_events = {
     "UNC_M_CLOCKTICKS": "UNC_M_DCLOCKTICKS"
@@ -84,12 +84,14 @@ def update(j):
             del j[k]
     return j
 
-def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, targetdir: str, all_events: bool, verbose: bool):
+def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO,
+                    extrajsonfile: Optional[TextIO],
+                    targetdir: str, all_events: bool, verbose: bool):
     verboseprint = print if verbose else lambda *a, **k: None
     events = read_events(jsonfile)
     events2 = read_events(extrajsonfile) if extrajsonfile else None
 
-    jl = []
+    jl : list[Dict[str, str]] = []
     added = set()
     c = csv.reader(csvfile)
     for l in c:
@@ -217,8 +219,8 @@ def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, ta
 
     for j in jl:
         if "UMask" in j.keys() and "UMaskExt" in j.keys():
-            str = j["UMask"][2:]
-            j["UMask"] = j["UMaskExt"] + str
+            jstr = j["UMask"][2:]
+            j["UMask"] = j["UMaskExt"] + jstr
         if "FILTER_VALUE" in j.keys() and j["Filter"] == "Filter1":
             j["Filter"] = "config1=" + j["FILTER_VALUE"]
             del j["FILTER_VALUE"]
@@ -275,7 +277,7 @@ def uncore_csv_json(csvfile: TextIO, jsonfile: TextIO, extrajsonfile: TextIO, ta
         return j["Topic"]
 
     for topic, iter in itertools.groupby(sorted(jl, key=get_topic), key=get_topic):
-        events = list(iter)
+        events : list[Dict[str, str]] = list(iter)
         for j in events:
             del j["Topic"]
         verboseprint("generating", topic)

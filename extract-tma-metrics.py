@@ -34,12 +34,12 @@ import re
 import json
 import sys
 from collections import defaultdict
-from typing import (Optional, Sequence, Set, TextIO)
+from typing import (Dict, Optional, Sequence, Set, TextIO, Union)
 
 # metrics redundant with perf or unusable
 ignore = set(['MUX', 'Power', 'Time'])
 
-groups = {
+groups : Dict[str, str] = {
     'IFetch_Line_Utilization': 'Frontend',
     'Kernel_Utilization': 'Summary',
     'Turbo_Utilization': 'Power',
@@ -239,14 +239,15 @@ def cstate_json(cpu):
     return result
 
 
-def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
+def extract_tma_metrics(csvfile: TextIO, cpu: str,
+                        extrajson: Optional[Union[bytearray, bytes, memoryview, str]],
                         cstate: bool, extramodel: str, unit: str,
                         memory: bool, verbose: bool, outfile: TextIO):
     verboseprint = print if verbose else lambda *a, **k: None
     csvf = csv.reader(csvfile)
 
     class PerfMetric:
-       def  __init__(self, name: str, form: str, desc: str, groups: str,
+       def  __init__(self, name: str, form: Optional[str], desc: str, groups: str,
                      locate: str, scale_unit: Optional[str] = None):
            self.name = name
            self.form = form
@@ -256,7 +257,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
            self.scale_unit = scale_unit
 
     # All the metrics read from the CSV file.
-    info : Sequence[PerfMetric] = []
+    info : list[PerfMetric] = []
     # Mapping from an auxiliary name like #Pipeline_Width to the CPU
     # specific formula used to compute it.
     aux : Dict[str, str] = {}
@@ -270,9 +271,9 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
     # Map from the column heading to the list index of that column.
     col_heading : Dict[str, int] = {}
     # A list of topdown levels such as 'Level1'.
-    levels : Sequence[str] = []
+    levels : list[str] = []
     # A list of parents of the current topdown level.
-    parents : Sequence[str] = []
+    parents : list[str] = []
     # Map from a parent topdown metric name to its children's names.
     children: Dict[str, Set[str]] = defaultdict(set)
     for l in csvf:
@@ -299,7 +300,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             lw = field('Locate-with')
             if not lw:
                 return None
-            m = re.match(r'(.+) ? (.+) : (.+)', lw)
+            m = re.fullmatch(r'(.+) ? (.+) : (.+)', lw)
             if m:
                 if extramodel in m.group(1):
                     lw = m.group(2)
@@ -324,34 +325,39 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                         parents[-1] = field(j)
                     verboseprint(f'{field(j)} => {str(parents)}')
                     form = find_form()
+                    if not form:
+                        verboseprint(f'Missing formula for {metric_name} on CPU {cpu}')
+                        continue
                     nodes[metric_name] = form
-                    groups = f'TopdownL{level}'
+                    mgroups = f'TopdownL{level}'
                     csv_groups = field('Metric Group')
                     if csv_groups:
-                        groups += f';{csv_groups}'
+                        mgroups += f';{csv_groups}'
                     if level > 1:
-                        groups += f';tma_{parents[-2].lower()}_group'
+                        mgroups += f';tma_{parents[-2].lower()}_group'
                         children[parents[-2]].add(parents[-1])
                     tma_metric_name = f'tma_{metric_name.lower()}'
                     info.append(PerfMetric(
                         tma_metric_name, form,
-                        field('Metric Description'), groups, locate_with(),
+                        field('Metric Description'), mgroups, locate_with(),
                         '100%'
                     ))
                     infoname[metric_name] = form
                     tma_metric_names[metric_name] = tma_metric_name
         elif l[0].startswith('Info'):
-            info.append(PerfMetric(
-                field('Level1'),
-                find_form(),
-                field('Metric Description'),
-                field('Metric Group'),
-                locate_with()
-            ))
-            infoname[field('Level1')] = find_form()
+            form = find_form()
+            if form:
+                info.append(PerfMetric(
+                    field('Level1'),
+                    form,
+                    field('Metric Description'),
+                    field('Metric Group'),
+                    locate_with()
+                ))
+                infoname[field('Level1')] = form
         elif l[0].startswith('Aux'):
             form = find_form()
-            if form != '#NA':
+            if form and form != '#NA':
                 aux[field('Level1')] = form
                 verboseprint('Adding aux', field('Level1'), form, file=sys.stderr)
 
@@ -375,13 +381,14 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
             continue
         verboseprint(i.name, 'orig form', form, file=sys.stderr)
 
+        global groups
         if i.groups == '':
             if i.name in groups:
                 i.groups = groups[i.name]
 
-        def resolve_all(form: str, cpu: str, expand_metrics: bool):
+        def resolve_all(form: str, cpu: str, expand_metrics: bool) -> str:
 
-            def fixup(form: str):
+            def fixup(form: str) -> str:
                 def update_fix(x: str) -> str:
                     x = x.replace(',', r'\,')
                     x = x.replace('=', r'\=')
@@ -462,7 +469,7 @@ def extract_tma_metrics(csvfile: TextIO, cpu: str, extrajson: TextIO,
                 changed = True
                 while changed:
                     changed = False
-                    m = re.match(r'(.*) if ([01]) else (.*)', form)
+                    m = re.fullmatch(r'(.*) if ([01]) else (.*)', form)
                     if m:
                         changed = True
                         form = check_expr(m.group(1) if m.group(2) == '1' else m.group(3))
