@@ -140,26 +140,7 @@ class Model:
                     outfile=outfile)
 
         # Additional metrics
-        broken_extra_metrics = {
-            'HSX': [
-                # Missing event 'c'.
-                'uncore_frequency',
-                # Missing event 'e'.
-                'llc_data_read_demand_plus_prefetch_miss_latency',
-                'llc_data_read_demand_plus_prefetch_miss_latency_for_local_requests',
-                'llc_data_read_demand_plus_prefetch_miss_latency_for_remote_requests',
-            ],
-            'ICX': [
-                # Missing event EXE_ACTIVITY.EXE_BOUND_0_PORTS
-                'tma_ports_utilization_percent',
-            ],
-            'SKX': [
-                # Missing cha/unc_cha_tor_occupancy.ia_miss/
-                'llc_data_read_demand_plus_prefetch_miss_latency',
-                'llc_data_read_demand_plus_prefetch_miss_latency_for_local_requests',
-                'llc_data_read_demand_plus_prefetch_miss_latency_for_remote_requests',
-            ],
-        }
+        broken_extra_metrics = {}
         if 'extra metrics' in self.files:
             with urllib.request.urlopen(
                     self.files['extra metrics']) as extra_metrics_json:
@@ -171,10 +152,12 @@ class Model:
                             'MetricName'].lower() in broken_extra_metrics[
                                 self.shortname]:
                         continue
-                    metrics = [
-                        x for x in metrics if x['MetricName'].lower() !=
-                        extra_metric['MetricName'].lower()
-                    ]
+                    if any(extra_metric['MetricName'].lower() == x['MetricName'].lower() for x in metrics):
+                        # Prefer existing metrics over those in extra
+                        # metrics as the existing metrics may be
+                        # written in terms of each other and have
+                        # consistent units.
+                        continue
                     metrics.append(extra_metric)
                 outfile = open(metrics_file, 'w', encoding='ascii')
                 outfile.write(
@@ -229,8 +212,9 @@ class Mapfile:
             mapfile = csv.reader(mapfile_csv_lines)
             first_row = True
             for l in mapfile:
-                if len(l) == 6:
-                    l.append("")
+                while len(l) < 7:
+                    # Fix missing columns.
+                    l.append('')
                 family_model, version, path, event_type, core_type, native_model_id, core_role_name = l
                 if first_row:
                     assert family_model == 'Family-model'
@@ -247,8 +231,15 @@ class Mapfile:
                 url = base_url + path
 
                 # Bug fixes:
-                if shortname == 'SNR' and event_type == 'uncore' and 'experimental' in path:
-                    event_type = 'uncore experimental'
+                if shortname == 'ADL' and event_type == 'core':
+                    # ADL GenuineIntel-6-BE only has atom cores and so
+                    # they don't set event_type to 'hybridcore' but
+                    # 'core' leading to ADL having multiple core
+                    # paths. Avoid this by setting the type back to
+                    # atom.
+                    assert 'gracemont' in path
+                    event_type = 'atom'
+                    core_role_name = 'Atom'
 
                 # Workarounds:
                 if event_type == 'hybridcore':
