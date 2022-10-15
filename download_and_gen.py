@@ -351,7 +351,9 @@ def hermetic_download(url: str, metrics_url: str, outdir: str):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--url', default='https://download.01.org/perfmon')
+    ap.add_argument(
+        '--url',
+        default='https://raw.githubusercontent.com/intel/perfmon/main')
     ap.add_argument(
         '--metrics-url',
         default='https://raw.githubusercontent.com/intel/perfmon-metrics/main')
