@@ -226,8 +226,18 @@ class Mapfile:
                     assert core_role_name == 'Core Role Name'
                     first_row = False
                     continue
-                shortname = re.sub(r'/(.*)/.*', r'\1', path)
-                longname = re.sub(rf'/{shortname}/([^_]*)_.*', r'\1', path)
+
+                # Extract platform names from mapfile.csv paths.
+                #   /NHM-EX/NehalemEX_core_V3.json -> NHM-EX, NehalemEX
+                #   /ADL/alderlake_uncore_v1.15.json -> ADL, alderlake
+                #   /TGL/events/tigerlake_core.json -> TGL, tigerlake
+                #   /WSM-EP-SP/events/WestmereEP-SP_core.json -> WSM-EP-SP, WestmereEP-SP
+                platform_pattern = r'/([a-zA-Z-]*)/(?:events/)?([a-zA-Z-]*)'
+                search_results = re.search(platform_pattern, path)
+                if not search_results:
+                    raise Exception('Failed extracting platform names from {} using {}'.format(path, platform_pattern))
+                shortname, longname = search_results.groups()
+
                 url = base_url + path
 
                 # Bug fixes:
